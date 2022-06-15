@@ -38,10 +38,83 @@ RUN pip3 install gitpython
 
 RUN apt-get autoclean
 
+RUN apt-get install vim
 
-# do somethings
+RUN apt-get install build-essential -y && \
+libeigen3-dev -y && \
+libsuitesparse-dev  -y && \
+freeglut3-dev  -y && \
+libqglviewer-dev-qt5  -y && \
+libyaml-cpp-dev
 
+RUN apt-get install qt5* -y
 
-# RUN mkdir slam && cd slam && \
-#     git clone https://github.com/EunGiHan/seuri-slam-pj.git &&\
-#     cd seuri-slam-pj && ./buildDeps.py --d --system
+RUN apt-get install libssl-dev
+
+# change -j<cores> if you want
+RUN cd home && \
+wget https://github.com/Kitware/CMake/releases/download/v3.20.0/cmake-3.20.0.tar.gz && \
+tar -xvzf cmake-3.20.0.tar.gz && \
+rm cmake-3.20.0.tar.gz && \
+cd cmake-3.20.0 && \
+./bootstrap && \
+make -j2 && \
+make install && \
+cmake --version && \
+cd ~
+
+RUN echo "== Install ROS melodic == " && \
+sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && \
+apt install curl && \
+curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add - && \
+apt update && \
+apt install ros-melodic-desktop-full -y && \
+echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc && \
+source ~/.bashrc && \
+apt install python-rosdep -y && \
+apt install python-rosinstall -y && \
+apt install python-rosinstall-generator -y && \
+apt install python-wstool -y && \
+apt install build-essential -y && \
+rosdep update
+
+RUN apt-get install python-catkin-tools -y
+
+RUN apt-get install ninja-build
+
+RUN echo "== Install ceres-solver == " && \
+cd /home && \
+apt-get install libgoogle-glog-dev -y && \
+apt-get install libgflags-dev -y && \
+apt-get install libatlas-base-dev -y && \
+apt-get install libeigen3-dev -y && \
+git clone https://ceres-solver.googlesource.com/ceres-solver && \
+mkdir ceres-bin && \
+cd ceres-bin && \
+cmake ../ceres-solver && \
+make -j4 && \
+make test && \
+make install
+
+RUN mkdir -p /root/catkin_ws/src && \
+cd /root/catkin_ws/src && \
+catkin_make
+
+RUN echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc && \
+echo "export ROS_HOSTNAME=localhost" >> ~/.bashrc && \
+echo "export ROS_MASTER_URI=http://localhost:11311" >> ~/.bashrc && \
+source ~/.bashrc
+
+RUN git clone https://github.com/yorsh87/g2o_catkin.git && \
+cd /root/catkin_ws && \
+rm -rf /root/catkin_ws/build && \
+rm -rf /root/catkin_ws/devel && \
+catkin build g2o_catkin -DGIT_TAG=26f775d144f3b09bc072b90b903631036a1e4107
+
+RUN touch /etc/ld.so.conf.d/g2o.conf && \
+echo "/root/catkin_ws/devel/lib" >> /etc/ld.so.conf.d/g2o.conf
+
+RUN cd /root/catkin_ws/src && \
+git clone https://github.com/EunGiHan/seurislam-pj.git && \
+./pull_srrg_packages.bash && \
+catkin build srrg_proslam
