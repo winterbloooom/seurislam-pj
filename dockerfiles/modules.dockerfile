@@ -14,8 +14,6 @@ git fetch --all && \
 git checkout ${BRANCH} && \
 git pull && \
 git branch && \
-# mkdir build_debug && cd build_debug && \
-# cmake -DCMAKE_BUILD_TYPE=Debug -GNinja .. && ninja
 catkin build srrg_proslam
 
 # RUN echo "== Start Release build == " && \
