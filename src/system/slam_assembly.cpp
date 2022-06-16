@@ -135,13 +135,14 @@ void SLAMAssembly::loadCamerasFromMessageFile() {
         camera_calibration_matrix_corrected(2, 2) = 1.0;
         image_message->setCameraMatrix(camera_calibration_matrix_corrected);
       }
-
+      LOG_INFO(std::cerr << "Here" << std::endl)
       //ds check for the two set topics to set the camera objects
       if (_camera_left == nullptr && image_message->topic() == _parameters->command_line_parameters->topic_image_left) {
         _camera_left = new Camera(image_message);
       } else if (_camera_right == nullptr && image_message->topic() == _parameters->command_line_parameters->topic_image_right) {
         _camera_right = new Camera(image_message);
       }
+      
     }
     message->untaint();
     delete message;

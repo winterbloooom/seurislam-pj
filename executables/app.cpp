@@ -23,8 +23,8 @@ int32_t main(int32_t argc_, char** argv_) {
     return 0;
   }
 
-  //ds print loaded configuration
-  parameters->command_line_parameters->print();
+  // // ds print loaded configuration
+  // parameters->command_line_parameters->print();
 
   //ds allocate SLAM system (has internal access to parameter server)
   proslam::SLAMAssembly slam_system(parameters);

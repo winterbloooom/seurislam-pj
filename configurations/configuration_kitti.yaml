@@ -10,7 +10,7 @@ command_line:
   topic_camera_info_right: /camera_right/camera_info
   
   #ds dataset file name
-  dataset_file_name:
+  dataset_file_name: "/root/catkin_ws/src/srrg_proslam/configurations/00.txt"
 
   #ds options
   option_use_gui:                   false
