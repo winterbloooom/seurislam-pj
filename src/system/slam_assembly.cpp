@@ -135,7 +135,7 @@ void SLAMAssembly::loadCamerasFromMessageFile() {
         camera_calibration_matrix_corrected(2, 2) = 1.0;
         image_message->setCameraMatrix(camera_calibration_matrix_corrected);
       }
-      LOG_INFO(std::cerr << "Here" << std::endl)
+      
       //ds check for the two set topics to set the camera objects
       if (_camera_left == nullptr && image_message->topic() == _parameters->command_line_parameters->topic_image_left) {
         _camera_left = new Camera(image_message);
@@ -487,6 +487,156 @@ void SLAMAssembly::playbackMessageFile() {
       image_right.release();
     }
   }
+  _message_reader.close();
+  LOG_INFO(std::cerr << "SLAMAssembly::playbackMessageFile|dataset completed" << std::endl)
+}
+
+void SLAMAssembly::playbackMessageFileOnce() {
+
+  //ds restart stream
+  _message_reader.open(_parameters->command_line_parameters->dataset_file_name);
+
+  //ds frame counts
+  _number_of_processed_frames              = 0;
+  Count number_of_processed_frames_current = 0;
+
+  //ds time measurement
+  const double runtime_info_update_frequency_seconds = 5;
+  double processing_time_seconds_current             = 0;
+
+  //ds visualization/start point
+  const TransformMatrix3D robot_to_camera_left(_camera_left->robotToCamera());
+
+  //ds start playback
+  srrg_core::BaseMessage* message = _message_reader.readMessage();
+  
+  srrg_core::BaseSensorMessage* sensor_message = dynamic_cast<srrg_core::BaseSensorMessage*>(message);
+  assert(sensor_message);
+  sensor_message->untaint();
+
+  //ds add to synchronizer
+  if (sensor_message->topic() == _parameters->command_line_parameters->topic_image_left) {
+    _synchronizer.putMessage(sensor_message);
+  } else if (sensor_message->topic() == _parameters->command_line_parameters->topic_image_right) {
+    _synchronizer.putMessage(sensor_message);
+  } else {
+    delete sensor_message;
+  }
+
+  //ds if we have a synchronized package of sensor messages ready
+  if (_synchronizer.messagesReady()) {
+
+    //ds if termination is requested - terminate
+    if (_is_termination_requested) {
+      break;
+    }
+
+    //ds buffer sensor data
+    srrg_core::PinholeImageMessage* image_message_left  = dynamic_cast<srrg_core::PinholeImageMessage*>(_synchronizer.messages()[0].get());
+    srrg_core::PinholeImageMessage* image_message_right = dynamic_cast<srrg_core::PinholeImageMessage*>(_synchronizer.messages()[1].get());
+    if (!image_message_left || !image_message_right) {
+      throw std::runtime_error("SLAMAssembly::playbackMessageFile|unable to retrieve image data from srrg messages");
+    }
+
+    //ds buffer images
+    cv::Mat image_left;
+    if(image_message_left->image().type() == CV_8UC3){
+      cvtColor(image_message_left->image(), image_left, CV_BGR2GRAY);
+    } else {
+      image_left = image_message_left->image();
+    }
+    cv::Mat image_right;
+    if (_parameters->command_line_parameters->tracker_mode == CommandLineParameters::TrackerMode::RGB_STEREO && image_message_right->image().type() == CV_8UC3) {
+      cvtColor(image_message_right->image(), image_right, CV_BGR2GRAY);
+    } else {
+      image_right = image_message_right->image();
+    }
+
+    //ds preprocess the images if desired
+    if (_parameters->command_line_parameters->option_equalize_histogram) {
+      cv::equalizeHist(image_left, image_left);
+      if (_parameters->command_line_parameters->tracker_mode == CommandLineParameters::TrackerMode::RGB_STEREO) {
+        cv::equalizeHist(image_right, image_right);
+      }
+    }
+
+    //ds odometry guess integration (if available)
+    TransformMatrix3D camera_left_to_world_guess(TransformMatrix3D::Identity());
+    if (image_message_left->hasOdom()) {
+
+      //ds get odometry into camera frame
+      const TransformMatrix3D robot_to_world = image_message_left->odometry().cast<real>();
+      camera_left_to_world_guess             = robot_to_world*_camera_left->cameraToRobot();
+
+      //ds if we just started - move current robot pose to odometry estimate (this only has an effect if the odometry starts not in the world origin)
+      if (_world_map->frames().empty()) {
+        _world_map->setRobotToWorld(robot_to_world);
+        if (_parameters->command_line_parameters->option_use_gui) {
+          _map_viewer->setWorldToRobotOrigin(_world_map->robotToWorld().inverse());
+        }
+      }
+    }
+
+    //ds start measuring time
+    const double time_start_seconds = srrg_core::getTime();
+
+    //ds progress SLAM with the new images
+    process(image_left, image_right,
+            image_message_left->timestamp(),
+            image_message_left->hasOdom(),
+            camera_left_to_world_guess);
+
+    //ds set ground truth to generated frame if available
+    if (image_message_left->hasOdom()) {
+      _world_map->setRobotToWorldGroundTruth(image_message_left->odometry().cast<real>());
+    }
+
+    //ds update timing stats
+    const double processing_time_seconds = srrg_core::getTime()-time_start_seconds;
+    _processing_times_seconds.push_back(processing_time_seconds);
+    _processing_time_total_seconds  += processing_time_seconds;
+    processing_time_seconds_current += processing_time_seconds;
+    ++_number_of_processed_frames;
+    ++number_of_processed_frames_current;
+    _current_fps = _number_of_processed_frames/_processing_time_total_seconds;
+
+    //ds runtime info
+    if (processing_time_seconds_current > runtime_info_update_frequency_seconds) {
+
+      //ds runtime info - depending on set modes and available information
+      if (!_parameters->command_line_parameters->option_disable_relocalization && !_world_map->localMaps().empty()) {
+        LOG_INFO(std::printf("SLAMAssembly::playbackMessageFile|frames: %5u <FPS: %6.2f>|landmarks: %6lu|local maps: %4lu (%3.2f)|closures: %3u (%3.2f)\n",
+                    _number_of_processed_frames,
+                    number_of_processed_frames_current/processing_time_seconds_current,
+                    _world_map->landmarks().size(),
+                    _world_map->localMaps().size(),
+                    _world_map->localMaps().size()/static_cast<real>(_number_of_processed_frames),
+                    _world_map->numberOfClosures(),
+                    _world_map->numberOfClosures()/static_cast<real>(_world_map->localMaps().size())))
+      } else {
+        LOG_INFO(std::printf("SLAMAssembly::playbackMessageFile|frames: %5u <FPS: %6.2f>|landmarks: %6lu|map updates: %3u\n",
+                    _number_of_processed_frames,
+                    number_of_processed_frames_current/processing_time_seconds_current,
+                    _world_map->landmarks().size(),
+                    _graph_optimizer->numberOfOptimizations()))
+      }
+
+      //ds reset stats for new measurement window
+      processing_time_seconds_current    = 0;
+      number_of_processed_frames_current = 0;
+    }
+    image_message_left->release();
+    image_message_right->release();
+    _synchronizer.reset();
+
+    //ds update gui (no effect if no GUI is active)
+    updateGUI();
+
+    //ds free image references (GUI gets copies)
+    image_left.release();
+    image_right.release();
+  }
+
   _message_reader.close();
   LOG_INFO(std::cerr << "SLAMAssembly::playbackMessageFile|dataset completed" << std::endl)
 }

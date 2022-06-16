@@ -47,7 +47,7 @@ int32_t main(int32_t argc_, char** argv_) {
       //ds target maximum GUI frequency; 50 fps
       const proslam::real target_display_frequency  = 50;
       const int64_t duration_gui_sleep_milliseconds = 1000/target_display_frequency;
-
+      
       //ds allocate a qt UI server in the main scope (required)
       std::shared_ptr<QApplication> gui_server(new QApplication(argc_, argv_));
 

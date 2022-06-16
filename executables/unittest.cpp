@@ -6,51 +6,51 @@
 
 class AssemblyTest : public ::testing::Test {
 public:
-  // AssemblyTest();
-  proslam::ParameterCollection* parameters = new proslam::ParameterCollection();
-  // proslam::SLAMAssembly slam_system = proslam::SLAMAssembly(parameters);
-  // proslam::ParameterCollection* parameters;
-  // proslam::SLAMAssembly slam_system;
-  void set_config();
-  void start_system();
-  std::shared_ptr<std::thread> slam_thread = nullptr;
+  void SetUp() override;
   
+  proslam::ParameterCollection* parameters;
+  // void app_main();
 };
 
-// AssemblyTest::AssemblyTest()
-// {
-//   // proslam::ParameterCollection* parameters = new proslam::ParameterCollection();
-//   // proslam::SLAMAssembly slam_system = proslam::SLAMAssembly(parameters);
-//   void set_config();
-//   // void start_system();
-// }
-
-void AssemblyTest::set_config()
+void AssemblyTest::SetUp()
 {
+  cv::setUseOptimized(true);
+  parameters = new proslam::ParameterCollection();
   parameters->command_line_parameters->configuration_file_name = "/root/catkin_ws/src/srrg_proslam/configurations/configuration_kitti.yaml";
+  // parameters->command_line_parameters->option_use_gui = true;
   parameters->parseFromFile(parameters->command_line_parameters->configuration_file_name);
-  parameters->command_line_parameters->option_use_gui = true;
 }
 
-void AssemblyTest::start_system()
+// void AssemblyTest::app_main()
+// {
+//   proslam::SLAMAssembly slam_system(parameters);
+//   std::shared_ptr<std::thread> slam_thread = nullptr;
+// }
+
+// TEST_F(AssemblyTest, ParseParam)
+// {
+//   ASSERT_NO_THROW(parameters->parseFromFile(parameters->command_line_parameters->configuration_file_name));
+// }
+
+// TEST_F(AssemblyTest, CameraLoad)
+// {
+//   proslam::SLAMAssembly slam_system(parameters);
+//   ASSERT_NO_THROW(slam_system.loadCamerasFromMessageFile());
+// }
+
+TEST_F(AssemblyTest, PlaybackTest)
 {
   proslam::SLAMAssembly slam_system(parameters);
+  std::shared_ptr<std::thread> slam_thread = nullptr;
+  
   slam_system.loadCamerasFromMessageFile();
+
+  cv::setNumThreads(0);
+
+  // slam_system.playbackMessageFileOnce();
+
+  ASSERT_NO_THROW(slam_system.playbackMessageFileOnce());
 }
-
-TEST_F(AssemblyTest, GetConfigFile)
-{
-  set_config();
-  ASSERT_NO_THROW(start_system());
-
-  // ASSERT_NO_THROW(parameters->parseFromFile(parameters->command_line_parameters->configuration_file_name));
-}
-
-// TEST(Test_Name_Major, Test_Name_Minor)
-// {
-//   constexpr bool evaluation = true;
-//   EXPECT_EQ(evaluation, true);
-// }
 
 int main(int argc, char **argv){
   testing::InitGoogleTest(&argc, argv);

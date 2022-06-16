@@ -50,6 +50,7 @@ public:
 
   //! @brief playback txt_io message file
   void playbackMessageFile();
+  void playbackMessageFileOnce();
 
   //! @brief thread wrapping
   std::shared_ptr<std::thread> playbackMessageFileInThread() {
