@@ -34,10 +34,10 @@ public:
   //ds available solvers
   typedef g2o::LinearSolverCSparse<BlockSolverVariable::PoseMatrixType> LinearSolverCSparseVariable;
   typedef g2o::LinearSolverCholmod<BlockSolverVariable::PoseMatrixType> LinearSolverCholmodVariable;
-  typedef g2o::LinearSolverDense<BlockSolverVariable::PoseMatrixType> LinearSolverCholmodVariable;
+  typedef g2o::LinearSolverDense<BlockSolverVariable::PoseMatrixType> LinearSolverDenseVariable;
   typedef g2o::LinearSolverCSparse<BlockSolver6x3::PoseMatrixType> LinearSolverCSparse6x3;
   typedef g2o::LinearSolverCholmod<BlockSolver6x3::PoseMatrixType> LinearSolverCholmod6x3;
-  typedef g2o::LinearSolverDense<BlockSolver6x3::PoseMatrixType> LinearSolverCholmod6x3;
+  typedef g2o::LinearSolverDense<BlockSolver6x3::PoseMatrixType> LinearSolverDense6x3;
 
 
   //ds available optimization algorithm

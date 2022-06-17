@@ -45,7 +45,7 @@ void GraphOptimizer::configure() {
    else if (_parameters->optimization_algorithm == "GAUSS_NEWTON" &&
       _parameters->linear_solver_type == "Dense" &&
       !_parameters->enable_full_bundle_adjustment) {
-    ALLOCATE_SOLVER(OptimizerGaussNewton, LinearSolverCSparse6x3, BlockSolver6x3)
+    ALLOCATE_SOLVER(OptimizerGaussNewton, LinearSolverDense6x3, BlockSolver6x3)
   }
 
   else if (_parameters->optimization_algorithm == "GAUSS_NEWTON" &&
@@ -72,7 +72,7 @@ void GraphOptimizer::configure() {
   else if (_parameters->optimization_algorithm == "LEVENBERG" &&
       _parameters->linear_solver_type == "Dense" &&
       !_parameters->enable_full_bundle_adjustment) {
-    ALLOCATE_SOLVER(OptimizerLevenberg, LinearSolverCSparse6x3, BlockSolver6x3)
+    ALLOCATE_SOLVER(OptimizerLevenberg, LinearSolverDense6x3, BlockSolver6x3)
   }
 
   else if (_parameters->optimization_algorithm == "LEVENBERG" &&
@@ -89,17 +89,17 @@ void GraphOptimizer::configure() {
   else if (_parameters->optimization_algorithm == "DOGLEG" &&
       _parameters->linear_solver_type == "CHOLMOD" &&
       !_parameters->enable_full_bundle_adjustment) {
-    ALLOCATE_SOLVER(OptimizerGaussNewton, LinearSolverCholmod6x3, BlockSolver6x3)
+    ALLOCATE_SOLVER(OptimizerDogleg, LinearSolverCholmod6x3, BlockSolver6x3)
   }
   else if (_parameters->optimization_algorithm == "DOGLEG" &&
       _parameters->linear_solver_type == "CSPARSE" &&
       !_parameters->enable_full_bundle_adjustment) {
-    ALLOCATE_SOLVER(OptimizerGaussNewton, LinearSolverCSparse6x3, BlockSolver6x3)
+    ALLOCATE_SOLVER(OptimizerDogleg, LinearSolverCSparse6x3, BlockSolver6x3)
   }
    else if (_parameters->optimization_algorithm == "DOGLEG" &&
       _parameters->linear_solver_type == "Dense" &&
       !_parameters->enable_full_bundle_adjustment) {
-    ALLOCATE_SOLVER(OptimizerGaussNewton, LinearSolverCSparse6x3, BlockSolver6x3)
+    ALLOCATE_SOLVER(OptimizerDogleg, LinearSolverDense6x3, BlockSolver6x3)
   }
 
   //ds if we couldn't allocate a solver
