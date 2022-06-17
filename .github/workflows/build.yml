@@ -19,7 +19,7 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v2
 
-      - name: Build - Build SLAM with pre-built 3rdParty libs
+      - name: Build & Test - Build with 3rdParty libs & Run Unit Test
         run: |
           eval $GET_REPO
           eval $GET_HASH

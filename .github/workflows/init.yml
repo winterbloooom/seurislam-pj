@@ -28,15 +28,15 @@ jobs:
           echo "=== Log Docker image status ==="
           sudo docker images 
           echo "=== Temporary Docker image build start ==="              
-          sudo docker build --force-rm --no-cache -t proslam:base_temp . -f base.dockerfile
+          sudo docker build --force-rm --no-cache -t proslam:data_temp . -f base.dockerfile
           echo "=== Temporary Docker image build finished ==="
           echo "=== Log Docker image status ==="
           echo 717lumos | sudo -S echo ""
           sudo docker images
           echo "=== Replace old Docker image with temporary image start ==="
-          sudo docker rmi proslam:base
-          sudo docker image tag slam:base_temp proslam:base
-          sudo docker rmi proslam:base_temp
+          sudo docker rmi proslam:data
+          sudo docker image tag slam:base_temp proslam:data
+          sudo docker rmi proslam:data_temp
           sudo docker images 
           echo "=== Job finished ===" 
 
