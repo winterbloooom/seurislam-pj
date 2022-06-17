@@ -528,7 +528,7 @@ void SLAMAssembly::playbackMessageFileOnce() {
 
     //ds if termination is requested - terminate
     if (_is_termination_requested) {
-      break;
+      return;
     }
 
     //ds buffer sensor data
