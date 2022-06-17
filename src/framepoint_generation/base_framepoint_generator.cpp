@@ -73,20 +73,26 @@ void  BaseFramePointGenerator::configure(){
                      << " (memory: " << SRRG_PROSLAM_DESCRIPTOR_SIZE_BITS << "b)" << std::endl)
 
   //ds allocate and initialize detector grid structure
-  _detectors           = new cv::Ptr<cv::FastFeatureDetector>*[_parameters->number_of_detectors_vertical];
+  _detectors           = new cv::Ptr<cv::Feature2D>*[_parameters->number_of_detectors_vertical];
+  _detectors_threshold = new double* [_parameters->number_of_detectors_vertical];
   _detector_regions    = new cv::Rect*[_parameters->number_of_detectors_vertical];
   _detector_thresholds = new real*[_parameters->number_of_detectors_vertical];
   const real pixel_rows_per_detector = static_cast<real>(_number_of_rows_image)/_parameters->number_of_detectors_vertical;
   const real pixel_cols_per_detector = static_cast<real>(_number_of_cols_image)/_parameters->number_of_detectors_horizontal;
   for (uint32_t r = 0; r < _parameters->number_of_detectors_vertical; ++r) {
-    _detectors[r]           = new cv::Ptr<cv::FastFeatureDetector>[_parameters->number_of_detectors_horizontal];
+    _detectors[r]           = new cv::Ptr<cv::Feature2D>[_parameters->number_of_detectors_horizontal];
+    _detectors_threshold[r] = new double[_parameters->number_of_detectors_horizontal];
     _detector_regions[r]    = new cv::Rect[_parameters->number_of_detectors_horizontal];
     _detector_thresholds[r] = new real[_parameters->number_of_detectors_horizontal];
     for (uint32_t c = 0; c < _parameters->number_of_detectors_horizontal; ++c) {
 #if CV_MAJOR_VERSION == 2
       _detectors[r][c] = new cv::FastFeatureDetector(_parameters->detector_threshold_minimum);
 #else
-      _detectors[r][c] = cv::FastFeatureDetector::create(_parameters->detector_threshold_minimum);
+      //_detectors[r][c] = cv::FastFeatureDetector::create(_parameters->detector_threshold_minimum);
+      if (_parameters->descriptor_type == "ORB-256")
+        _detectors[r][c] = cv::ORB::create(_parameters->detector_threshold_minimum);
+      else
+        _detectors[r][c] = cv::AKAZE::create(_parameters->detector_threshold_minimum);
 #endif
 
       //ds consider small overlaps of detector image regions to avoid point discard at borders
@@ -165,10 +171,12 @@ BaseFramePointGenerator::~BaseFramePointGenerator() {
   if (_detectors && _detector_regions && _detector_thresholds) {
     for (uint32_t r = 0; r < _parameters->number_of_detectors_vertical; ++r) {
       delete[] _detectors[r];
+      delete[] _detectors_threshold[r];
       delete[] _detector_regions[r];
       delete[] _detector_thresholds[r];
     }
     delete [] _detectors;
+    delete [] _detectors_threshold;
     delete [] _detector_regions;
     delete [] _detector_thresholds;
   }
@@ -194,11 +202,30 @@ void BaseFramePointGenerator::detectKeypoints(const cv::Mat& intensity_image_,
       std::vector<cv::KeyPoint> keypoints_per_detector(0);
       _detectors[r][c]->detect(intensity_image_(_detector_regions[r][c]), keypoints_per_detector);
 
+      if (_parameters->descriptor_type == "ORB-256") {
+          cv::Ptr <cv::ORB> temp = cv::ORB::create(_parameters->detector_threshold_minimum);
+          std::vector <cv::KeyPoint> t(0);
+          temp->detect(intensity_image_(_detector_regions[r][c]), t);
+          _detectors_threshold[r][c] = temp->getEdgeThreshold();
+      }
+      else {
+          cv::Ptr <cv::AKAZE> temp = cv::AKAZE::create(_parameters->detector_threshold_minimum);
+          std::vector <cv::KeyPoint> t(0);
+          temp->detect(intensity_image_(_detector_regions[r][c]), t);
+          _detectors_threshold[r][c] = temp->getThreshold();
+      }
       //ds retrieve currently set threshold for this detector
 #if CV_MAJOR_VERSION == 2
       real detector_threshold = _detectors[r][c]->getInt("threshold");
 #else
-      real detector_threshold = _detectors[r][c]->getThreshold();
+      /*
+      if (_parameters->descriptor_type == "ORB-256")
+          real detector_threshold = _detectors[r][c]->getEdgeThreshold();
+      else
+          real detector_threshold = _detectors[r][c]->getThreshold();
+          */
+      // real detector_threshold = _detectors[r][c]->getThreshold();
+      real detector_threshold = _detectors_threshold[r][c];
 #endif
 
       //ds compute point delta: 100% loss > -1, 100% gain > +1
@@ -268,7 +295,14 @@ void BaseFramePointGenerator::adjustDetectorThresholds() {
 #if CV_MAJOR_VERSION == 2
       _detectors[r][c]->setInt("threshold", std::rint(_detector_thresholds[r][c]));
 #else
-      _detectors[r][c]->setThreshold(std::rint(_detector_thresholds[r][c]));
+      /*
+      if (_parameters->descriptor_type == "ORB-256")
+          _detectors[r][c]->setEdgeThreshold(std::rint(_detector_thresholds[r][c]));
+      else
+          _detectors[r][c]->setThreshold(std::rint(_detector_thresholds[r][c]));
+          */
+        //_detectors[r][c]->setThreshold(std::rint(_detector_thresholds[r][c]));
+        _detectors_threshold[r][c] = std::rint(_detector_thresholds[r][c]);
 #endif
 
       //ds reset bookkeeping for next detection(s)

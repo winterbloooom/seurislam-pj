@@ -89,9 +89,10 @@ protected:
   real _principal_point_offset_v_pixels = 0;
 
   //! @brief grid of detectors (equally distributed over the image with size=number_of_detectors_per_dimension*number_of_detectors_per_dimension)
-  cv::Ptr<cv::FastFeatureDetector>** _detectors = nullptr;
+  cv::Ptr<cv::Feature2D>** _detectors           = nullptr;
   real** _detector_thresholds                   = nullptr;
   real _mean_detector_threshold                 = 0;
+  double** _detectors_threshold    = nullptr;
 
   //! @brief number of detectors
   //! @brief the same for all image streams
