@@ -5,14 +5,23 @@
 #ifdef SRRG_PROSLAM_G2O_HAS_NEW_OWNERSHIP_MODEL
 #define ALLOCATE_SOLVER(OPTIMIZATION_ALGORITHM_, SOLVER_TYPE_, BLOCK_TYPE_) \
   std::unique_ptr<SOLVER_TYPE_> linear_solver = g2o::make_unique<SOLVER_TYPE_>(); \
-  if (SOLVER_TYPE_ != "DENSE") {linear_solver->setBlockOrdering(true);} \
+  linear_solver->setBlockOrdering(true); \
+  std::unique_ptr<BLOCK_TYPE_> block_solver = g2o::make_unique<BLOCK_TYPE_>(std::move(linear_solver)); \
+  solver = new OPTIMIZATION_ALGORITHM_(std::move(block_solver));
+#define ALLOCATE_SOLVER_NO(OPTIMIZATION_ALGORITHM_, SOLVER_TYPE_, BLOCK_TYPE_) \
+  std::unique_ptr<SOLVER_TYPE_> linear_solver = g2o::make_unique<SOLVER_TYPE_>(); \
   std::unique_ptr<BLOCK_TYPE_> block_solver = g2o::make_unique<BLOCK_TYPE_>(std::move(linear_solver)); \
   solver = new OPTIMIZATION_ALGORITHM_(std::move(block_solver));
 #else
 #define ALLOCATE_SOLVER(OPTIMIZATION_ALGORITHM_, SOLVER_TYPE_, BLOCK_TYPE_) \
   SOLVER_TYPE_* linear_solver = new SOLVER_TYPE_(); \
-  if (SOLVER_TYPE_ != "DENSE") {linear_solver->setBlockOrdering(true);} \
+  if (SOLVER_TYPE_ == "DENSE") ?  : linear_solver->setBlockOrdering(true) \
   linear_solver->setBlockOrdering(true); \
+  BLOCK_TYPE_* block_solver = new BLOCK_TYPE_(linear_solver); \
+  solver = new OPTIMIZATION_ALGORITHM_(block_solver);
+#define ALLOCATE_SOLVER_NO(OPTIMIZATION_ALGORITHM_, SOLVER_TYPE_, BLOCK_TYPE_) \
+  SOLVER_TYPE_* linear_solver = new SOLVER_TYPE_(); \
+  if (SOLVER_TYPE_ == "DENSE") ?  : linear_solver->setBlockOrdering(true) \
   BLOCK_TYPE_* block_solver = new BLOCK_TYPE_(linear_solver); \
   solver = new OPTIMIZATION_ALGORITHM_(block_solver);
 #endif
@@ -45,7 +54,7 @@ void GraphOptimizer::configure() {
    else if (_parameters->optimization_algorithm == "GAUSS_NEWTON" &&
       _parameters->linear_solver_type == "Dense" &&
       !_parameters->enable_full_bundle_adjustment) {
-    ALLOCATE_SOLVER(OptimizerGaussNewton, LinearSolverDense6x3, BlockSolver6x3)
+    ALLOCATE_SOLVER_NO(OptimizerGaussNewton, LinearSolverDense6x3, BlockSolver6x3)
   }
 
   else if (_parameters->optimization_algorithm == "GAUSS_NEWTON" &&
@@ -72,7 +81,7 @@ void GraphOptimizer::configure() {
   else if (_parameters->optimization_algorithm == "LEVENBERG" &&
       _parameters->linear_solver_type == "Dense" &&
       !_parameters->enable_full_bundle_adjustment) {
-    ALLOCATE_SOLVER(OptimizerLevenberg, LinearSolverDense6x3, BlockSolver6x3)
+    ALLOCATE_SOLVER_NO(OptimizerLevenberg, LinearSolverDense6x3, BlockSolver6x3)
   }
 
   else if (_parameters->optimization_algorithm == "LEVENBERG" &&
@@ -99,7 +108,7 @@ void GraphOptimizer::configure() {
    else if (_parameters->optimization_algorithm == "DOGLEG" &&
       _parameters->linear_solver_type == "Dense" &&
       !_parameters->enable_full_bundle_adjustment) {
-    ALLOCATE_SOLVER(OptimizerDogleg, LinearSolverDense6x3, BlockSolver6x3)
+    ALLOCATE_SOLVER_NO(OptimizerDogleg, LinearSolverDense6x3, BlockSolver6x3)
   }
 
   //ds if we couldn't allocate a solver
