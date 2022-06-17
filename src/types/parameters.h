@@ -167,6 +167,9 @@ public:
   //! @brief parameter printing function
   virtual void print() const;
 
+  //! @brief desired detector type (OpenCV string + bit size): FAST, ORB-256, A-KAZE-486
+  std::string detector_type = "FAST";
+
   //! @brief desired descriptor type (OpenCV string + bit size): BRIEF-256, ORB-256, BRISK-512, FREAK-512, ..
   std::string descriptor_type = "ORB-256";
 
