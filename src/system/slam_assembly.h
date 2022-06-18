@@ -33,7 +33,7 @@ public:
   void loadCamerasFromMessageFile();
 
   //ds attempts to load the camera configuration based on the current input setting
-  void loadCameras(Camera* camera_left_, Camera* camera_right_);
+  void loadCameras();
 
   //ds initializes gui components
   void initializeGUI(std::shared_ptr<QApplication> ui_server_);
@@ -99,6 +99,10 @@ public:
   const Count numberOfRecursiveRegistrations() const {return _tracker->numberOfRecursiveRegistrations();}
   const real meanTrackingRatio() const {return _tracker->meanTrackingRatio();}
   const real meanTriangulationRatio() const {return dynamic_cast<StereoFramePointGenerator*>(_tracker->framepointGenerator())->meanTriangulationSuccessRatio();}
+
+  // get Camera pointer
+  Camera* getCameraLeft() const {return _camera_left;}
+  Camera* getCameraRight() const {return _camera_right;}
 
 //ds helpers:
 protected:

@@ -38,6 +38,9 @@ int32_t main(int32_t argc_, char** argv_) {
     //ds load cameras
     slam_system.loadCamerasFromMessageFile();
 
+    //ds load cameras to assembly
+    slam_system.loadCameras();
+
     //ds if visualization is desired
     if (parameters->command_line_parameters->option_use_gui) {
 

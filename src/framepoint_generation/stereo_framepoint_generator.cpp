@@ -15,6 +15,7 @@ void StereoFramePointGenerator::configure(){
 
   //ds integrate configuration
   _parameters->number_of_cameras = 2;
+  LOG_INFO(std::cerr << _parameters->number_of_cameras << std::endl)
   BaseFramePointGenerator::configure();
 
   //ds configure stereo triangulation parameters

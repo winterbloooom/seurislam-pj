@@ -106,7 +106,7 @@ void SLAMAssembly::loadCamerasFromMessageFile() {
     LOG_INFO(std::cerr << _parameters->banner << std::endl)
     throw std::runtime_error("unable to open dataset");
   }
-
+  
   //ds configure message synchronizer
   std::vector<std::string> camera_topics_synchronized(0);
   camera_topics_synchronized.push_back(_parameters->command_line_parameters->topic_image_left);
@@ -201,22 +201,19 @@ void SLAMAssembly::loadCamerasFromMessageFile() {
     LOG_INFO(std::printf("%11.6f %11.6f %11.6f %11.6f\n", projection_matrix(1,0), projection_matrix(1,1), projection_matrix(1,2), projection_matrix(1,3)))
     LOG_INFO(std::printf("%11.6f %11.6f %11.6f %11.6f\n", projection_matrix(2,0), projection_matrix(2,1), projection_matrix(2,2), projection_matrix(2,3)))
   }
-
-  //ds load cameras to assembly
-  loadCameras(_camera_left, _camera_right);
 }
 
-void SLAMAssembly::loadCameras(Camera* camera_left_, Camera* camera_right_) {
+void SLAMAssembly::loadCameras() {
   assert(_tracker);
 
   //ds allocate the tracker module with the given cameras
   switch (_parameters->command_line_parameters->tracker_mode){
     case CommandLineParameters::TrackerMode::RGB_STEREO: {
-      _createStereoTracker(camera_left_, camera_right_);
+      _createStereoTracker(_camera_left, _camera_right);
       break;
     }
     case CommandLineParameters::TrackerMode::RGB_DEPTH: {
-      _createDepthTracker(camera_left_, camera_right_);
+      _createDepthTracker(_camera_left, _camera_right);
       break;
     }
     default: {
@@ -225,15 +222,13 @@ void SLAMAssembly::loadCameras(Camera* camera_left_, Camera* camera_right_) {
   }
 
   //ds set system handles
-  _camera_left  = camera_left_;
-  _camera_right = camera_right_;
   _tracker->setCameraLeft(_camera_left);
   _tracker->setCameraSecondary(_camera_right);
   LOG_INFO(std::cerr << "SLAMAssembly::loadCameras|loaded cameras: " << 2 << std::endl)
-  LOG_INFO(std::cerr << "SLAMAssembly::loadCameras|LEFT resolution: " << camera_left_->numberOfImageCols() << " x " << camera_left_->numberOfImageRows()
-            << ", aspect ratio: " << static_cast<real>(camera_left_->numberOfImageCols())/camera_left_->numberOfImageRows() << std::endl)
-  LOG_INFO(std::cerr << "SLAMAssembly::loadCameras|RIGHT resolution: " << camera_right_->numberOfImageCols() << " x " << camera_right_->numberOfImageRows()
-            << ", aspect ratio: " << static_cast<real>(camera_right_->numberOfImageCols())/camera_right_->numberOfImageRows() << std::endl)
+  LOG_INFO(std::cerr << "SLAMAssembly::loadCameras|LEFT resolution: " << _camera_left->numberOfImageCols() << " x " << _camera_left->numberOfImageRows()
+            << ", aspect ratio: " << static_cast<real>(_camera_left->numberOfImageCols())/_camera_left->numberOfImageRows() << std::endl)
+  LOG_INFO(std::cerr << "SLAMAssembly::loadCameras|RIGHT resolution: " << _camera_right->numberOfImageCols() << " x " << _camera_right->numberOfImageRows()
+            << ", aspect ratio: " << static_cast<real>(_camera_right->numberOfImageCols())/_camera_right->numberOfImageRows() << std::endl)
 
   //ds configure remaining components
   _graph_optimizer->configure();
