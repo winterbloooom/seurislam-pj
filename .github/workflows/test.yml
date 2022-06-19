@@ -1,4 +1,4 @@
-name: CI
+name: UnitTest
 on:
   workflow_dispatch:
   push:
@@ -12,8 +12,8 @@ env:
   GET_HASH: export HASH=${GITHUB_SHA}
 
 jobs:
-  CI:
-    name: CI
+  UnitTest:
+    name: UnitTest
     runs-on: self-hosted
     steps:
       - name: Checkout source code
@@ -25,18 +25,22 @@ jobs:
           eval $GET_HASH
           echo "=== Build start ==="
           echo 717lumos | sudo -S echo ""         
-          cd dockerfiles
-          sudo docker build --force-rm --no-cache -t "${REPO}:${HASH}" --build-arg BRANCH=${{ github.head_ref }} . -f modules.dockerfile
+          useradd -m user && yes password | passwd user
+          cd /root/catkin_ws/src/srrg_proslam
+          git remote update
+          git fetch --all
+          git checkout ${BRANCH}
+          git pull
+          git branch
+          cd ~/catkin_ws/src
+          catkin build --make-args tests -- srrg_proslam
           echo "=== Build finished ==="
 
       - name: Test - Run Unit Test
         run: |
-          eval $GET_REPO
-          eval $GET_HASH
           echo "=== Unit Test start ==="
-          echo 717lumos | sudo -S echo ""         
-          cd dockerfiles
-          sudo docker build --force-rm --no-cache -t "${REPO}:${HASH}" --build-arg BRANCH=${{ github.head_ref }} . -f unittest.dockerfile
+          cd /root/catkin_ws/devel/lib/srrg_proslam
+          ./test_app
           echo "=== Unit Test finished ==="
 
       - name: If Fail - Clean up Docker image if test fails
