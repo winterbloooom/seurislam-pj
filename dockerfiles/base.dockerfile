@@ -127,7 +127,8 @@ RUN echo "== Clone and Build Source Codes == " && \
     catkin build --make-args tests -- srrg_proslam
     
 RUN echo "== Set aliases ==" && \
-    echo "alias cb="cd ~/catkin_ws/src && catkin build --make-args tests -- srrg_proslam"" >> ~/.bashrc && \
+    echo "alias src_build="cd ~/catkin_ws/src && catkin build --make-args tests -- srrg_proslam"" >> ~/.bashrc && \
+    echo "alias test_build="cd ~/catkin_ws/src && catkin build srrg_proslam"" >> ~/.bashrc && \
     echo "alias src="cd ~/catkin_ws/src/srrg_proslam"" >> ~/.bashrc && \
     echo "alias runtest="cd ~/catkin_ws/devel/lib/srrg_proslam && ./test_app"" >> ~/.bashrc && \
     echo "alias rungui="cd ~/catkin_ws/devel/lib/srrg_proslam && ./app -c ~/catkin_ws/src/srrg_proslam/configurations/configuration_kitti.yaml -use-gui"" >> ~/.bashrc && \
