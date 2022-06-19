@@ -48,6 +48,9 @@ world_map:
 
 base_framepoint_generation:
 
+  #ds feature detector type (FAST, ORB-256, A-KAZE-486)
+  detector_type: FAST
+
   #ds feature descriptor type (BRIEF-128/256/512, ORB-256, BRISK-512, FREAK-512, A-KAZE-486, BinBoost-064)
   descriptor_type: ORB-256
 
