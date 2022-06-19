@@ -125,3 +125,10 @@ RUN echo "== Clone and Build Source Codes == " && \
     git clone https://github.com/EunGiHan/seurislam-pj.git && \
     ./pull_srrg_packages.bash && \
     catkin build --make-args tests -- srrg_proslam
+    
+RUN echo "== Set aliases ==" && \
+    echo "alias cb="cd ~/catkin_ws/src && catkin build --make-args tests -- srrg_proslam"" >> ~/.bashrc && \
+    echo "alias src="cd ~/catkin_ws/src/srrg_proslam"" >> ~/.bashrc && \
+    echo "alias runtest="cd ~/catkin_ws/devel/lib/srrg_proslam && ./test_app"" >> ~/.bashrc && \
+    echo "alias rungui="cd ~/catkin_ws/devel/lib/srrg_proslam && ./app -c ~/catkin_ws/src/srrg_proslam/configurations/configuration_kitti.yaml -use-gui"" >> ~/.bashrc && \
+    echo "alias gitlogin="echo '(ID)EunGiHan (PW)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'"" >> ~/.bashrc && \
