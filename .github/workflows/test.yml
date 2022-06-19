@@ -25,6 +25,7 @@ jobs:
           eval $GET_HASH
           echo "=== Build start ==="
           echo 717lumos | sudo -S echo ""         
+          sudo useradd -m user2 && yes password | sudo passwd user2
           cd /root/catkin_ws/src/srrg_proslam
           git remote update
           git fetch --all
