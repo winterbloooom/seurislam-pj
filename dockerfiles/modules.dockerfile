@@ -16,3 +16,7 @@ RUN echo "== Start Debug build == " && \
     git branch && \
     cd ~/catkin_ws/src && \
     catkin build --make-args tests -- srrg_proslam
+
+RUN echo "== Start Test == " && \
+    cd /root/catkin_ws/devel/lib/srrg_proslam && \
+    ./test_app
