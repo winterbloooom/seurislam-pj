@@ -39,19 +39,19 @@ RUN pip3 install gitpython
 
 RUN apt-get autoclean
 
-RUN apt-get install vim
+RUN apt-get install vim -y
 
 RUN echo "== Install ProSLAM Prerequisites == " && \
     apt-get install build-essential -y && \
-    libeigen3-dev -y && \
-    libsuitesparse-dev  -y && \
-    freeglut3-dev  -y && \
-    libqglviewer-dev-qt5  -y && \
-    libyaml-cpp-dev
+    apt-get install libeigen3-dev -y && \
+    apt-get install libsuitesparse-dev  -y && \
+    apt-get install freeglut3-dev  -y && \
+    apt-get install libqglviewer-dev-qt5  -y && \
+    apt-get install libyaml-cpp-dev -y
 
 RUN apt-get install qt5* -y
 
-RUN apt-get install libssl-dev
+RUN apt-get install libssl-dev -y
 
 # change -j<cores> if you want
 RUN echo "== Install CMake Latest version == " && \
@@ -83,7 +83,7 @@ RUN echo "== Install ROS melodic == " && \
 
 RUN apt-get install python-catkin-tools -y
 
-RUN apt-get install ninja-build
+RUN apt-get install ninja-build -y
 
 # change -j<cores> if you want
 RUN echo "== Install ceres-solver == " && \
