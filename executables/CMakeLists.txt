@@ -1,6 +1,10 @@
 #ds main executable (pthread is used for the GUI thread)
 add_executable(app app.cpp)
-target_link_libraries(app srrg_proslam_slam_assembly_library -pthread)
+target_link_libraries(app 
+  srrg_proslam_slam_assembly_library 
+  easy_profiler 
+  stdc++fs 
+  -pthread)
 
 #add_executable(srrg_proslam_app app.cpp)
 #target_link_libraries(srrg_proslam_app srrg_proslam_slam_assembly_library -pthread)
@@ -10,7 +14,7 @@ set(CATKIN_ENABLE_TESTING True)
 if(CATKIN_ENABLE_TESTING)
   catkin_add_gtest(test_app
           unittest.cpp)
-  target_link_libraries(test_app srrg_proslam_slam_assembly_library -pthread)
+  target_link_libraries(test_app srrg_proslam_slam_assembly_library easy_profiler -pthread)
 endif(CATKIN_ENABLE_TESTING)
 
 ##ds ROS related - only build it if ROS is present (blindly link against the whole catkin library collection)

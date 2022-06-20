@@ -1,10 +1,15 @@
 #include "system/slam_assembly.h"
+#include <easy/profiler.h>
+#define USING_EASY_PROFILER
 
 int32_t main(int32_t argc_, char** argv_) {
 
 #ifdef SRRG_MERGE_DESCRIPTORS
   std::cerr << "main|HBST descriptor merging enabled" << std::endl;
 #endif
+
+  EASY_PROFILER_ENABLE;
+  // profiler::startListen();
 
   //ds enable opencv optimizations
   cv::setUseOptimized(true);
@@ -58,7 +63,10 @@ int32_t main(int32_t argc_, char** argv_) {
       slam_system.initializeGUI(gui_server);
 
       //ds start message playback in separate thread
+      EASY_BLOCK("Playback", profiler::colors::Black);
       slam_thread = slam_system.playbackMessageFileInThread();
+      EASY_END_BLOCK;
+      
 
       //ds enter GUI loop
       while (slam_system.isViewerOpen()) {
@@ -119,6 +127,8 @@ int32_t main(int32_t argc_, char** argv_) {
     }
     std::cerr << "main|all threads successfully joined" << std::endl;
   }
+  
+  profiler::dumpBlocksToFile("~/catkin_ws/src/srrg_proslam/test_profile.prof");
 
   //ds clean up dynamic memory
   delete parameters;

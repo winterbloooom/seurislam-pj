@@ -209,6 +209,14 @@ catkin_package(
   ${SRRG_QT_LIBRARIES}
 )
 
+find_package(easy_profiler REQUIRED HINTS ~/catkin_ws/src/easy_profiler/install/lib/cmake/easy_profiler)
+if(${easy_profiler_FOUND})
+  message(STATUS "Found: Easy-profiler - ${easy_profiler_INCLUDE_DIRS}")
+  include_directories(~/catkin_ws/src/easy_profiler/install/include)
+  set(EASY_PROFILER_LIBS easy_profiler)
+  message(STATUS "easy_profiler: ${EASY_PROFILER_LIBS}")
+endif(${easy_profiler_FOUND})
+
 #ds set sources
 message("${PROJECT_NAME}|final flags: '${CMAKE_CXX_FLAGS}'")
 add_subdirectory(src)
