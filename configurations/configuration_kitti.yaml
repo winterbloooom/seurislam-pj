@@ -48,10 +48,10 @@ world_map:
 
 base_framepoint_generation:
 
-  #ds feature detector type (ORB, AKAZE, FAST)
-  detector_type: ORB
+  #ds feature detector type (AKAZE, FAST, KAZE, ORB)
+  detector_type: FAST
 
-  #ds feature descriptor type (ORB, AKAZE, BRISK)
+  #ds feature descriptor type (AKAZE, BRISK, KAZE, ORB)
   descriptor_type: ORB
 
   #ds dynamic thresholds for feature detection
