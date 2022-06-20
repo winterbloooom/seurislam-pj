@@ -25,33 +25,17 @@ void  BaseFramePointGenerator::configure(){
   _maximum_descriptor_distance_tracking = _parameters->maximum_descriptor_distance_tracking;
 
   //ds allocate descriptor extractor TODO enable further support and check BIT SIZES
-  if (_parameters->descriptor_type == "BRIEF-256") {
-    #ifdef SRRG_PROSLAM_HAS_OPENCV_CONTRIB
-      _descriptor_extractor = cv::xfeatures2d::BriefDescriptorExtractor::create(DESCRIPTOR_SIZE_BYTES);
-    #else
-      LOG_WARNING(std::cerr << "BaseFramePointGenerator::configure|descriptor_type: BRIEF-256"
-                            << " is not available in current build, defaulting to ORB-256" << std::endl)
-      _descriptor_extractor        = cv::ORB::create();
-      _parameters->descriptor_type = "ORB-256";
-    #endif
-  } else if (_parameters->descriptor_type == "ORB-256") {
+  if (_parameters->descriptor_type == "ORB") {
     _descriptor_extractor = cv::ORB::create();
-  } else if (_parameters->descriptor_type == "BRISK-512") {
+  } else if (_parameters->descriptor_type == "AKAZE") {
+    _descriptor_extractor = cv::AKAZE::create();
+  } else if (_parameters->descriptor_type == "BRISK") {
     _descriptor_extractor = cv::BRISK::create();
-  } else if (_parameters->descriptor_type == "FREAK-512") {
-    #ifdef SRRG_PROSLAM_HAS_OPENCV_CONTRIB
-        _descriptor_extractor = cv::xfeatures2d::FREAK::create();
-    #else
-        LOG_WARNING(std::cerr << "BaseFramePointGenerator::configure|descriptor_type: FREAK-512"
-                              << " is not available in current build, defaulting to ORB-256" << std::endl)
-        _descriptor_extractor        = cv::ORB::create();
-        _parameters->descriptor_type = "ORB-256";
-    #endif
   } else {
     LOG_WARNING(std::cerr << "BaseFramePointGenerator::configure|descriptor_type: " << _parameters->descriptor_type
-                          << " is not implemented, defaulting to ORB-256" << std::endl)
+                          << " is not implemented, defaulting to ORB" << std::endl)
     _descriptor_extractor        = cv::ORB::create();
-    _parameters->descriptor_type = "ORB-256";
+    _parameters->descriptor_type = "ORB";
   }
 
   //ds log chosen descriptor type and size
@@ -71,13 +55,18 @@ void  BaseFramePointGenerator::configure(){
     _detector_regions[r]    = new cv::Rect[_parameters->number_of_detectors_horizontal];
     _detector_thresholds[r] = new real[_parameters->number_of_detectors_horizontal];
     for (uint32_t c = 0; c < _parameters->number_of_detectors_horizontal; ++c) {
-      if (_parameters->detector_type == "FAST")
-        _detectors[r][c] = cv::FastFeatureDetector::create(_parameters->detector_threshold_minimum);
-      else if (_parameters->detector_type == "ORB-256")
+      if (_parameters->detector_type == "ORB") {
         _detectors[r][c] = cv::ORB::create(_parameters->detector_threshold_minimum);
-      else if (_parameters->detector_type == "A-KAZE-486")
+      } else if (_parameters->detector_type == "AKAZE") {
         _detectors[r][c] = cv::AKAZE::create(_parameters->detector_threshold_minimum);
-
+      } else if (_parameters->detector_type == "FAST") {
+        _detectors[r][c] = cv::FastFeatureDetector::create(_parameters->detector_threshold_minimum);
+      } else {
+        LOG_WARNING(std::cerr << "BaseFramePointGenerator::configure|detector_type: " << _parameters->detector_type
+                              << " is not implemented, defaulting to ORB" << std::endl)
+        _detectors[r][c] = cv::ORB::create();
+        _parameters->detector_type = "ORB";
+      }
       //ds consider small overlaps of detector image regions to avoid point discard at borders
       int32_t offset_width  = 0;
       int32_t offset_height = 0;
@@ -185,23 +174,26 @@ void BaseFramePointGenerator::detectKeypoints(const cv::Mat& intensity_image_,
       std::vector<cv::KeyPoint> keypoints_per_detector(0);
       _detectors[r][c]->detect(intensity_image_(_detector_regions[r][c]), keypoints_per_detector);
 
-      if (_parameters->detector_type == "FAST") {
-          cv::Ptr <cv::FastFeatureDetector> temp = cv::FastFeatureDetector::create(_parameters->detector_threshold_minimum);
-          std::vector <cv::KeyPoint> t(0);
-          temp->detect(intensity_image_(_detector_regions[r][c]), t);
-          _detectors_threshold[r][c] = temp->getThreshold();
-      }
-      else if (_parameters->detector_type == "ORB-256") {
+      if (_parameters->detector_type == "ORB") {
           cv::Ptr <cv::ORB> temp = cv::ORB::create(_parameters->detector_threshold_minimum);
           std::vector <cv::KeyPoint> t(0);
           temp->detect(intensity_image_(_detector_regions[r][c]), t);
           _detectors_threshold[r][c] = temp->getEdgeThreshold();
-      }
-      else if (_parameters->detector_type == "A-KAZE-486") {
+      } else if (_parameters->detector_type == "AKAZE") {
           cv::Ptr <cv::AKAZE> temp = cv::AKAZE::create(_parameters->detector_threshold_minimum);
           std::vector <cv::KeyPoint> t(0);
           temp->detect(intensity_image_(_detector_regions[r][c]), t);
           _detectors_threshold[r][c] = temp->getThreshold();
+      } else if (_parameters->detector_type == "FAST") {
+          cv::Ptr <cv::FastFeatureDetector> temp = cv::FastFeatureDetector::create(_parameters->detector_threshold_minimum);
+          std::vector <cv::KeyPoint> t(0);
+          temp->detect(intensity_image_(_detector_regions[r][c]), t);
+          _detectors_threshold[r][c] = temp->getThreshold();
+      } else {
+          cv::Ptr <cv::ORB> temp = cv::ORB::create(_parameters->detector_threshold_minimum);
+          std::vector <cv::KeyPoint> t(0);
+          temp->detect(intensity_image_(_detector_regions[r][c]), t);
+          _detectors_threshold[r][c] = temp->getEdgeThreshold();
       }
       //ds retrieve currently set threshold for this detector
       real detector_threshold = _detectors_threshold[r][c];

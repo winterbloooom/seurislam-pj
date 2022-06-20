@@ -167,11 +167,11 @@ public:
   //! @brief parameter printing function
   virtual void print() const;
 
-  //! @brief desired detector type (OpenCV string + bit size): FAST, ORB-256, A-KAZE-486
-  std::string detector_type = "FAST";
+  //! @brief desired detector type : ORB, AKAZE, FAST
+  std::string detector_type = "ORB";
 
-  //! @brief desired descriptor type (OpenCV string + bit size): BRIEF-256, ORB-256, BRISK-512, FREAK-512, ..
-  std::string descriptor_type = "ORB-256";
+  //! @brief desired descriptor type : ORB, AKAZE, BRISK
+  std::string descriptor_type = "ORB";
 
   //! @brief dynamic thresholds for feature detection
   real target_number_of_keypoints_tolerance = 0.1;
