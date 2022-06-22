@@ -7,8 +7,6 @@
 #include <Eigen/Geometry>
 #include <opencv2/core/version.hpp>
 #include <opencv2/opencv.hpp>
-#include <easy/profiler.h>
-#define USING_EASY_PROFILER
 
 #if CV_MAJOR_VERSION == 2
   //ds no specifics

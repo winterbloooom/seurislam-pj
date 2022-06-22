@@ -1,6 +1,9 @@
 #pragma once
 #include "local_map.h"
 
+#include <easy/profiler.h>
+#define USING_EASY_PROFILER
+
 namespace proslam {
 
 //! @class the world map is the overarching map entity, generating and owning all landmarks, frames and local map objects

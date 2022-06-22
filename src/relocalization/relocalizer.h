@@ -2,6 +2,9 @@
 #include "aligners/xyz_aligner.h"
 #include "closure.h"
 
+#include <easy/profiler.h>
+#define USING_EASY_PROFILER
+
 namespace proslam {
 
 //ds this class computes potential loop closures for a given local map query (the extent of computed detail can be steered easily using the different methods)

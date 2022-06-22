@@ -3,11 +3,11 @@
 namespace proslam {
 
 BaseFramePointGenerator::BaseFramePointGenerator(BaseFramePointGeneratorParameters* parameters_): _parameters(parameters_) {
-  LOG_INFO(std::cerr << "BaseFramePointGenerator::BaseFramePointGenerator|constructed" << std::endl)
+  // LOG_INFO(std::cerr << "BaseFramePointGenerator::BaseFramePointGenerator|constructed" << std::endl)
 }
 
 void  BaseFramePointGenerator::configure(){
-  LOG_INFO(std::cerr << "BaseFramePointGenerator::configure|configuring" << std::endl)
+  // LOG_INFO(std::cerr << "BaseFramePointGenerator::configure|configuring" << std::endl)
   assert(_camera_left);
 
   _number_of_rows_image            = _camera_left->numberOfImageRows();
@@ -144,11 +144,11 @@ void  BaseFramePointGenerator::configure(){
 
   //ds clear buffers
   _keypoints_with_descriptors_left.clear();
-  LOG_INFO(std::cerr << "BaseFramePointGenerator::configure|configured" << std::endl)
+  // LOG_INFO(std::cerr << "BaseFramePointGenerator::configure|configured" << std::endl)
 }
 
 BaseFramePointGenerator::~BaseFramePointGenerator() {
-  LOG_INFO(std::cerr << "BaseFramePointGenerator::~BaseFramePointGenerator|destroying" << std::endl)
+  // LOG_INFO(std::cerr << "BaseFramePointGenerator::~BaseFramePointGenerator|destroying" << std::endl)
 
   //ds deallocate dynamic data structures: detectors
   if (_detectors && _detector_regions && _detector_thresholds) {
@@ -169,13 +169,14 @@ BaseFramePointGenerator::~BaseFramePointGenerator() {
     delete[] _bin_map_left[row];
   }
   delete[] _bin_map_left;
-  LOG_INFO(std::cerr << "BaseFramePointGenerator::~BaseFramePointGenerator|destroyed" << std::endl)
+  // LOG_INFO(std::cerr << "BaseFramePointGenerator::~BaseFramePointGenerator|destroyed" << std::endl)
 }
 
 void BaseFramePointGenerator::detectKeypoints(const cv::Mat& intensity_image_,
                                               std::vector<cv::KeyPoint>& keypoints_,
                                               const bool ignore_minimum_detector_threshold_) {
   CHRONOMETER_START(keypoint_detection)
+  EASY_BLOCK("KeypointDetection", profiler::colors::Red);
 
   //ds detect new keypoints in each image region
   for (uint32_t r = 0; r < _parameters->number_of_detectors_vertical; ++r) {
@@ -252,12 +253,16 @@ void BaseFramePointGenerator::detectKeypoints(const cv::Mat& intensity_image_,
   }
   ++_number_of_detections;
   _number_of_detected_keypoints = keypoints_.size();
+
+  EASY_END_BLOCK;
   CHRONOMETER_STOP(keypoint_detection)
 }
 
 void BaseFramePointGenerator::computeDescriptors(const cv::Mat& intensity_image_, std::vector<cv::KeyPoint>& keypoints_, cv::Mat& descriptors_) {
   CHRONOMETER_START(descriptor_extraction)
+  EASY_BLOCK("DescriptorExtraction", profiler::colors::Orange);
   _descriptor_extractor->compute(intensity_image_, keypoints_, descriptors_);
+  EASY_END_BLOCK;
   CHRONOMETER_STOP(descriptor_extraction)
 }
 

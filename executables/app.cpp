@@ -63,21 +63,23 @@ int32_t main(int32_t argc_, char** argv_) {
       slam_system.initializeGUI(gui_server);
 
       //ds start message playback in separate thread
-      EASY_BLOCK("Playback", profiler::colors::Black);
       slam_thread = slam_system.playbackMessageFileInThread();
-      EASY_END_BLOCK;
-      
-
+         
       //ds enter GUI loop
       while (slam_system.isViewerOpen()) {
 
         //ds breathe (maximum GUI speed: 50 fps)
         std::this_thread::sleep_for(std::chrono::milliseconds(duration_gui_sleep_milliseconds));
 
+        // EASY_BLOCK("Draw", profiler::colors::Black);
+
         //ds draw current state
         slam_system.draw();
+        
+        // EASY_END_BLOCK;
       }
 
+      
       //ds clean up GL
       gui_server->closeAllWindows();
       gui_server->quit();
@@ -110,6 +112,7 @@ int32_t main(int32_t argc_, char** argv_) {
     //ds save trajectories to disk
     slam_system.writeTrajectoryKITTI("trajectory_kitti.txt");
     slam_system.writeTrajectoryTUM("trajectory_tum.txt");
+    profiler::dumpBlocksToFile("/root/catkin_ws/devel/lib/srrg_proslam/profile.prof");
 
     //ds save g2o graph to disk
     if (parameters->command_line_parameters->option_save_pose_graph) {
@@ -127,8 +130,7 @@ int32_t main(int32_t argc_, char** argv_) {
     }
     std::cerr << "main|all threads successfully joined" << std::endl;
   }
-  
-  profiler::dumpBlocksToFile("~/catkin_ws/src/srrg_proslam/test_profile.prof");
+
 
   //ds clean up dynamic memory
   delete parameters;

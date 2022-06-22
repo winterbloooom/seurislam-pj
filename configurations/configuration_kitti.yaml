@@ -20,7 +20,7 @@ command_line:
   option_drop_framepoints:          false
   option_equalize_histogram:        false
   option_recover_landmarks:         true
-  option_disable_bundle_adjustment: true
+  option_disable_bundle_adjustment: false #true
   option_save_pose_graph:           false
   
   #topic synchronization

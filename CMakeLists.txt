@@ -157,6 +157,14 @@ endif()
 #ds load suite sparse for pose graph optimization
 find_package(SuiteSparse REQUIRED)
 
+find_package(easy_profiler REQUIRED HINTS /root/catkin_ws/src/easy_profiler/install/lib/cmake/easy_profiler)
+if(${easy_profiler_FOUND})
+  set(EASY_PROFILER_LIBS easy_profiler)
+  set(easy_profiler_INCLUDE_DIRS /root/catkin_ws/src/easy_profiler/install/include)
+else()
+  message("Not Found: Easy-profiler")
+endif()
+
 #ds specify additional locations of header files
 #ds treating them as system includes to surpress warnings (!)
 include_directories(SYSTEM
@@ -168,6 +176,7 @@ include_directories(SYSTEM
   ${catkin_INCLUDE_DIRS}
   ${SRRG_QT_INCLUDE_DIRS}
   src
+  ${easy_profiler_INCLUDE_DIRS}
 )
 
 #ds help the catkin tool on 16.04 (cmake seems unable to find single libraries, although catkin claims the link_directories call is not required)
@@ -184,6 +193,7 @@ catkin_package(
   ${QGLVIEWER_INCLUDE_DIR}
   ${catkin_INCLUDE_DIRS}
   ${SRRG_QT_INCLUDE_DIRS}
+  ${easy_profiler_INCLUDE_DIRS}
   src
 
   LIBRARIES
@@ -202,20 +212,13 @@ catkin_package(
   ${g2o_LIBRARIES}
   ${CSPARSE_LIBRARY}
   ${OpenCV_LIBS}
+  ${EASY_PROFILER_LIBS}
   yaml-cpp
   ${OPENGL_gl_LIBRARY}
   ${OPENGL_glu_LIBRARY}
   ${QGLVIEWER_LIBRARY}
   ${SRRG_QT_LIBRARIES}
 )
-
-find_package(easy_profiler REQUIRED HINTS ~/catkin_ws/src/easy_profiler/install/lib/cmake/easy_profiler)
-if(${easy_profiler_FOUND})
-  message(STATUS "Found: Easy-profiler - ${easy_profiler_INCLUDE_DIRS}")
-  include_directories(~/catkin_ws/src/easy_profiler/install/include)
-  set(EASY_PROFILER_LIBS easy_profiler)
-  message(STATUS "easy_profiler: ${EASY_PROFILER_LIBS}")
-endif(${easy_profiler_FOUND})
 
 #ds set sources
 message("${PROJECT_NAME}|final flags: '${CMAKE_CXX_FLAGS}'")
