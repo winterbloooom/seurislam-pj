@@ -15,7 +15,7 @@ RUN echo "== Start Build == " && \
     git pull && \
     git branch && \
     cd ~/catkin_ws/src && \
-    catkin build 
+    catkin build srrg_proslam
 
 RUN echo "== Start Run == " && \
     cd ~/dataset/KITTI_Pro && \
