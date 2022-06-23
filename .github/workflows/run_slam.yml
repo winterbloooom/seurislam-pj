@@ -12,14 +12,22 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v2
 
+      - name: Build ProSLAM
+        run: |
+          eval $GET_REPO
+          eval $GET_HASH
+          echo "=== Build ProSLAM ==="
+          echo 717lumos | sudo -S echo ""
+          cd dockerfiles
+          sudo docker build --force-rm --no-cache -t "${REPO}:${HASH}" --build-arg BRANCH=${{ github.head_ref }} . -f build.dockerfile
+      
       - name: Run ProSLAM
         run: |
           eval $GET_REPO
           eval $GET_HASH
           echo "=== Run ProSLAM ==="
           echo 717lumos | sudo -S echo ""
-          cd dockerfiles
-          sudo docker build --force-rm --no-cache -t "${REPO}:${HASH}" --build-arg BRANCH=${{ github.head_ref }} . -f run.dockerfile
+          docker run -it -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY --name running_proslam ${REPO}:${HASH}
 
       - name: If Fail - Clean up Docker image if build fails
         if: failure()
