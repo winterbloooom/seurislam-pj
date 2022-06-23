@@ -13,7 +13,7 @@ Camera::Camera(const Count& image_rows_,
   ++_instances;
   setCameraMatrix(camera_matrix_);
   setCameraToRobot(camera_to_robot_);
-  // LOG_INFO(std::cerr << "Camera::Camera|constructed" << std::endl)
+  LOG_INFO(std::cerr << "Camera::Camera|constructed" << std::endl)
 }
 
 Camera::Camera(srrg_core::PinholeImageMessage* message_): _identifier(_instances),

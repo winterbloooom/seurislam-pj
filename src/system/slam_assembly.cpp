@@ -118,12 +118,13 @@ void SLAMAssembly::loadCamerasFromMessageFile() {
   srrg_core::BaseMessage* message = 0;
   _camera_left  = nullptr;
   _camera_right = nullptr;
+
   while ((message = _message_reader.readMessage())) {
 
     //ds we currently only process image data!
     srrg_core::PinholeImageMessage* image_message = dynamic_cast<srrg_core::PinholeImageMessage*>(message);
     if (image_message) {
-
+      
       //ds fix orazio orientation TODO purify dataset calibration parameters
       if (_parameters->command_line_parameters->dataset_file_name == "orazio_2016_run.txt") {
         std::cerr << "applying orazio tilt correction" << std::endl;
@@ -340,7 +341,13 @@ void SLAMAssembly::playbackMessageFile() {
 
   //ds start playback
   srrg_core::BaseMessage* message = 0;
+  int frame_cnt = 0;
   while ((message = _message_reader.readMessage())) {
+
+    if (frame_cnt > 4000) break;
+    else if (frame_cnt % 50 == 0) std::cout << "frame_cnt: " << frame_cnt << " / 4000" << std::endl;
+    frame_cnt++;
+
     srrg_core::BaseSensorMessage* sensor_message = dynamic_cast<srrg_core::BaseSensorMessage*>(message);
     assert(sensor_message);
     sensor_message->untaint();

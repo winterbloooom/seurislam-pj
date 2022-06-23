@@ -71,12 +71,8 @@ int32_t main(int32_t argc_, char** argv_) {
         //ds breathe (maximum GUI speed: 50 fps)
         std::this_thread::sleep_for(std::chrono::milliseconds(duration_gui_sleep_milliseconds));
 
-        // EASY_BLOCK("Draw", profiler::colors::Black);
-
         //ds draw current state
         slam_system.draw();
-        
-        // EASY_END_BLOCK;
       }
 
       
@@ -110,9 +106,9 @@ int32_t main(int32_t argc_, char** argv_) {
     slam_system.printReport();
 
     //ds save trajectories to disk
-    slam_system.writeTrajectoryKITTI("trajectory_kitti.txt");
-    slam_system.writeTrajectoryTUM("trajectory_tum.txt");
-    profiler::dumpBlocksToFile("/root/catkin_ws/devel/lib/srrg_proslam/profile.prof");
+    slam_system.writeTrajectoryKITTI("/root/test_results/ProSLAM/trajectory_kitti.txt");
+    slam_system.writeTrajectoryTUM("/root/test_results/ProSLAM/trajectory_tum.txt");
+    profiler::dumpBlocksToFile("/root/test_results/ProSLAM/ProSLAM_profile.prof");
 
     //ds save g2o graph to disk
     if (parameters->command_line_parameters->option_save_pose_graph) {
