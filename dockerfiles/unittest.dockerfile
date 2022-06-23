@@ -18,4 +18,5 @@ RUN echo "== Start Debug build == " && \
     catkin build --make-args tests -- srrg_proslam
 
 RUN echo "== Start Test == " && \
-    runtest
+    cd ~/catkin_ws/src && \
+    catkin build --make-args tests -- srrg_proslam

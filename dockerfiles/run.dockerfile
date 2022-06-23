@@ -15,7 +15,8 @@ RUN echo "== Start Build == " && \
     git pull && \
     git branch && \
     cd ~/catkin_ws/src && \
-    src_build
+    catkin build 
 
 RUN echo "== Start Run == " && \
-    rungui
+    cd ~/dataset/KITTI_Pro && \
+    ~/catkin_ws/devel/lib/srrg_proslam/app -c ~/catkin_ws/src/srrg_proslam/configurations/configuration_kitti.yaml -use-gui

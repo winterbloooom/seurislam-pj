@@ -15,4 +15,4 @@ RUN echo "== Start build == " && \
     git pull && \
     git branch && \
     cd ~/catkin_ws/src && \
-    src_build
+    catkin build 
