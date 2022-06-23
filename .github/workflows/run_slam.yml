@@ -27,7 +27,7 @@ jobs:
           eval $GET_HASH
           echo "=== Run ProSLAM ==="
           echo 717lumos | sudo -S echo ""
-          docker run -it -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY --name running_proslam ${REPO}:${HASH}
+          docker run -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=unix$DISPLAY --name running_proslam ${REPO}:${HASH}
 
       - name: If Fail - Clean up Docker image if build fails
         if: failure()
