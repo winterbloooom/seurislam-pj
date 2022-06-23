@@ -1,11 +1,5 @@
 name: clang-format
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+on: workflow_dispatch
 
 jobs:
   clang-format:
@@ -18,8 +12,6 @@ jobs:
       - name: Run clang-format check script
         run: |
           echo "=== clang-format check start ==="
+          ./run-clang-format.py --style file -r executables
+          ./run-clang-format.py --style file -r src 
           echo "=== clang-format check finished ==="
-          
-
-#./run-clang-format.py --style file -r executables
-#./run-clang-format.py --style file -r src

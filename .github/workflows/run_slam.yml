@@ -1,32 +1,23 @@
-name: Build
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches: [ main ]
+name: Run
+on: workflow_dispatch
 env:
   GET_REPO: export REPO=${GITHUB_REPOSITORY#*/}
   GET_HASH: export HASH=${GITHUB_SHA}
 
 jobs:
-  Build:
-    name: Build
+  Run:
+    name: Run
     runs-on: self-hosted
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
 
-      - name: Build - Build with 3rdParty libs
+      - name: Run ProSLAM
         run: |
-          eval $GET_REPO
-          eval $GET_HASH
-          echo "=== Build start ==="
-          echo 717lumos | sudo -S echo ""         
+          echo "=== Run ProSLAM ==="
+          echo 717lumos | sudo -S echo ""
           cd dockerfiles
-          sudo docker build --force-rm --no-cache -t "${REPO}:${HASH}" --build-arg BRANCH=${{ github.head_ref }} . -f build.dockerfile
-          echo "=== Build finished ==="
+          sudo docker build --force-rm --no-cache -t "${REPO}:${HASH}" --build-arg BRANCH=${{ github.head_ref }} . -f run.dockerfile
 
       - name: If Fail - Clean up Docker image if build fails
         if: failure()

@@ -7,7 +7,7 @@ RUN apt-get update -y && apt-get upgrade -y
 
 RUN useradd -m user && yes password | passwd user
 
-RUN echo "== Start Debug build == " && \
+RUN echo "== Start Build == " && \
     cd /root/catkin_ws/src/srrg_proslam && \
     git remote update && \
     git fetch --all && \
@@ -15,7 +15,7 @@ RUN echo "== Start Debug build == " && \
     git pull && \
     git branch && \
     cd ~/catkin_ws/src && \
-    catkin build --make-args tests -- srrg_proslam
+    src_build
 
-RUN echo "== Start Test == " && \
-    runtest
+RUN echo "== Start Run == " && \
+    rungui
