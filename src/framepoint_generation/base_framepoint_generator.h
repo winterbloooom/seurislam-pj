@@ -2,7 +2,8 @@
 #include "types/frame.h"
 #include "intensity_feature_matcher.h"
 
-
+#include <easy/profiler.h>
+#define USING_EASY_PROFILER
 
 namespace proslam {
 

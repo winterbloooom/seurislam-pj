@@ -6,11 +6,11 @@ namespace proslam {
 
 ImageViewer::ImageViewer(ImageViewerParameters* parameters_): _parameters(parameters_),
                                                               _current_frame(0) {
-  LOG_DEBUG(std::cerr << "ImageViewer::ImageViewer|constructed" << std::endl)
+  // LOG_DEBUG(std::cerr << "ImageViewer::ImageViewer|constructed" << std::endl)
 }
 
 ImageViewer::~ImageViewer() {
-  LOG_DEBUG(std::cerr << "ImageViewer::~ImageViewer|destroyed" << std::endl)
+  // LOG_DEBUG(std::cerr << "ImageViewer::~ImageViewer|destroyed" << std::endl)
 }
 
 void ImageViewer::configure() {

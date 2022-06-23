@@ -7,34 +7,34 @@ namespace proslam {
 using namespace srrg_core;
 
 WorldMap::WorldMap(const WorldMapParameters* parameters_): _parameters(parameters_) {
-  LOG_INFO(std::cerr << "WorldMap::WorldMap|constructing" << std::endl)
+  // LOG_INFO(std::cerr << "WorldMap::WorldMap|constructing" << std::endl)
   clear();
-  LOG_INFO(std::cerr << "WorldMap::WorldMap|constructed" << std::endl)
+  // LOG_INFO(std::cerr << "WorldMap::WorldMap|constructed" << std::endl)
 }
 
 WorldMap::~WorldMap() {
-  LOG_INFO(std::cerr << "WorldMap::~WorldMap|destroying" << std::endl)
+  // LOG_INFO(std::cerr << "WorldMap::~WorldMap|destroying" << std::endl)
   clear();
-  LOG_INFO(std::cerr << "WorldMap::~WorldMap|destroyed" << std::endl)
+  // LOG_INFO(std::cerr << "WorldMap::~WorldMap|destroyed" << std::endl)
 }
 
 //ds clears all internal structures
 void WorldMap::clear() {
 
   //ds free landmarks
-  LOG_INFO(std::cerr << "WorldMap::clear|deleting landmarks: " << _landmarks.size() << std::endl)
+  // LOG_INFO(std::cerr << "WorldMap::clear|deleting landmarks: " << _landmarks.size() << std::endl)
   for(LandmarkPointerMap::iterator it = _landmarks.begin(); it != _landmarks.end(); ++it) {
     delete it->second;
   }
 
   //ds free all frames
-  LOG_INFO(std::cerr << "WorldMap::clear|deleting frames: " << _frames.size() << std::endl)
+  // LOG_INFO(std::cerr << "WorldMap::clear|deleting frames: " << _frames.size() << std::endl)
   for(FramePointerMap::iterator it = _frames.begin(); it != _frames.end(); ++it) {
     delete it->second;
   }
 
   //ds free all local maps
-  LOG_INFO(std::cerr << "WorldMap::clear|deleting local maps: " << _local_maps.size() << std::endl)
+  // LOG_INFO(std::cerr << "WorldMap::clear|deleting local maps: " << _local_maps.size() << std::endl)
   for(const LocalMap* local_map: _local_maps) {
     delete local_map;
   }
@@ -250,7 +250,7 @@ void WorldMap::writeTrajectoryTUM(const std::string& filename_) const {
     outfile_trajectory << orientation.x() << " ";
     outfile_trajectory << orientation.y() << " ";
     outfile_trajectory << orientation.z() << " ";
-    outfile_trajectory << orientation.w() << " ";
+    outfile_trajectory << orientation.w();
     outfile_trajectory << "\n";
   }
   outfile_trajectory.close();
@@ -304,6 +304,7 @@ void WorldMap::setTrack(Frame* frame_) {
 
 void WorldMap::mergeLandmarks(const Closure::ClosureConstraintVector& closures_) {
   CHRONOMETER_START(landmark_merging)
+  EASY_BLOCK("LandmarkMerge", profiler::colors::Brown);
 
   //ds keep track of the best merged references
   //ds we need to do this since we're processing multiple closures here,
@@ -471,6 +472,8 @@ void WorldMap::mergeLandmarks(const Closure::ClosureConstraintVector& closures_)
   }
   LOG_DEBUG(std::cerr << "WorldMap::mergeLandmarks|merged landmarks: " << merged_landmark_identifiers.size() << std::endl)
   _number_of_merged_landmarks += merged_landmark_identifiers.size();
+
+  EASY_END_BLOCK;
   CHRONOMETER_STOP(landmark_merging)
 }
 }

@@ -31,11 +31,11 @@ namespace proslam {
 GraphOptimizer::GraphOptimizer(GraphOptimizerParameters* parameters_): _parameters(parameters_),
                                                                        _optimizer(nullptr),
                                                                        _vertex_local_map_last_added(nullptr) {
-  LOG_INFO(std::cerr << "GraphOptimizer::GraphOptimizer|constructed" << std::endl)
+  // LOG_INFO(std::cerr << "GraphOptimizer::GraphOptimizer|constructed" << std::endl)
 }
 
 void GraphOptimizer::configure() {
-  LOG_INFO(std::cerr << "GraphOptimizer::configure|configuring" << std::endl)
+  // LOG_INFO(std::cerr << "GraphOptimizer::configure|configuring" << std::endl)
 
   //ds solver setup
   g2o::OptimizationAlgorithm* solver = nullptr;
@@ -141,11 +141,11 @@ void GraphOptimizer::configure() {
   _optimizer->addParameter(parameter_world_offset);
   LOG_INFO(std::cerr << "GraphOptimizer::configure|allocated optimization algorithm: " << _parameters->optimization_algorithm
                      << " with solver: " << _parameters->linear_solver_type << std::endl)
-  LOG_INFO(std::cerr << "GraphOptimizer::configure|configured" << std::endl)
+  // LOG_INFO(std::cerr << "GraphOptimizer::configure|configured" << std::endl)
 }
 
 GraphOptimizer::~GraphOptimizer(){
-  LOG_INFO(std::cerr << "GraphOptimizer::~GraphOptimizer|destroying" << std::endl)
+  // LOG_INFO(std::cerr << "GraphOptimizer::~GraphOptimizer|destroying" << std::endl)
   _frames_in_pose_graph.clear();
   _landmarks_in_pose_graph.clear();
   if (_optimizer) {
@@ -153,7 +153,7 @@ GraphOptimizer::~GraphOptimizer(){
     _optimizer->clearParameters();
     delete _optimizer;
   }
-  LOG_INFO(std::cerr << "GraphOptimizer::~GraphOptimizer|destroyed" << std::endl)
+  // LOG_INFO(std::cerr << "GraphOptimizer::~GraphOptimizer|destroyed" << std::endl)
 }
 
 void GraphOptimizer::writePoseGraphToFile(const WorldMap* world_map_, const std::string& file_name_) const {
@@ -258,6 +258,7 @@ void GraphOptimizer::writePoseGraphToFile(const WorldMap* world_map_, const std:
 
 void GraphOptimizer::addPose(LocalMap* local_map_) {
   CHRONOMETER_START(addition)
+  EASY_BLOCK("PoseGraphAdd", profiler::colors::Black);
 
   //ds get the frames pose to g2o representation
   g2o::VertexSE3* vertex_current = new g2o::VertexSE3();
@@ -306,11 +307,14 @@ void GraphOptimizer::addPose(LocalMap* local_map_) {
 
   //ds bookkeep the added frame
   _vertex_local_map_last_added = vertex_current;
+
+  EASY_END_BLOCK;
   CHRONOMETER_STOP(addition)
 }
 
 void GraphOptimizer::addPoseWithFactors(Frame* frame_) {
   CHRONOMETER_START(addition)
+  EASY_BLOCK("PoseGraphAdd", profiler::colors::Black);
 
   //ds get the frames pose to g2o representation
   g2o::VertexSE3* vertex_frame_current = new g2o::VertexSE3();
@@ -396,11 +400,14 @@ void GraphOptimizer::addPoseWithFactors(Frame* frame_) {
   //ds bookkeep the added frame
   _vertex_local_map_last_added = vertex_frame_current;
   _frames_in_pose_graph.insert(std::make_pair(frame_, vertex_frame_current));
+
+  EASY_END_BLOCK;
   CHRONOMETER_STOP(addition)
 }
 
 void GraphOptimizer::optimizePoseGraph(WorldMap* world_map_) {
   CHRONOMETER_START(optimization)
+  EASY_BLOCK("PoseGraphOptim", profiler::colors::White);
 
 //  //ds save current graph to file
 //  const std::string file_name = "pose_graph_"+std::to_string(world_map_->currentFrame()->identifier())+".g2o";
@@ -442,11 +449,14 @@ void GraphOptimizer::optimizePoseGraph(WorldMap* world_map_) {
   //ds move current head to the new optimized position
   world_map_->setRobotToWorld(world_map_->currentFrame()->robotToWorld());
   ++_number_of_optimizations;
+
+  EASY_END_BLOCK;
   CHRONOMETER_STOP(optimization)
 }
 
 void GraphOptimizer::optimizeFactorGraph(WorldMap* world_map_) {
   CHRONOMETER_START(optimization)
+  EASY_BLOCK("FactorGraphOptim", profiler::colors::White);
 
 //  //ds save current graph to file
 //  const std::string file_name = "pose_graph_"+std::to_string(world_map_->currentFrame()->identifier())+".g2o";
@@ -471,6 +481,8 @@ void GraphOptimizer::optimizeFactorGraph(WorldMap* world_map_) {
   _vertex_local_map_last_added = 0;
   _frames_in_pose_graph.clear();
   _landmarks_in_pose_graph.clear();
+
+  EASY_END_BLOCK;
   CHRONOMETER_STOP(optimization)
 }
 

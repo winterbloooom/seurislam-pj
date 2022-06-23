@@ -34,13 +34,13 @@ MapViewer::MapViewer(MapViewerParameters* parameters_): _parameters(parameters_)
   LOG_INFO(std::cerr << DOUBLE_BAR << std::endl)
   LOG_INFO(std::cerr << "MapViewer::MapViewer|switched to stepwise mode (press [Space] for switch, press [ARROW_UP] for stepping)" << std::endl)
   LOG_INFO(std::cerr << DOUBLE_BAR << std::endl)
-  LOG_DEBUG(std::cerr << "MapViewer::MapViewer|constructed" << std::endl)
+  // LOG_DEBUG(std::cerr << "MapViewer::MapViewer|constructed" << std::endl)
 }
 
 MapViewer::~MapViewer() {
-  LOG_DEBUG(std::cerr << "MapViewer::~MapViewer|destroying" << std::endl)
+  // LOG_DEBUG(std::cerr << "MapViewer::~MapViewer|destroying" << std::endl)
   _visible_landmarks.clear();
-  LOG_DEBUG(std::cerr << "MapViewer::~MapViewer|destroyed" << std::endl)
+  // LOG_DEBUG(std::cerr << "MapViewer::~MapViewer|destroyed" << std::endl)
 }
 
 void MapViewer::configure() {

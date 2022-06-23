@@ -1,5 +1,4 @@
 #include "frame.h"
-
 #include "world_map.h"
 
 namespace proslam {

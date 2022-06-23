@@ -3,6 +3,9 @@
 #include "aligners/base_frame_aligner.h"
 #include "types/world_map.h"
 
+#include <easy/profiler.h>
+#define USING_EASY_PROFILER
+
 namespace proslam {
 
 //ds this class processes two subsequent Frames and establishes Framepoint correspondences (tracks) based on the corresponding images

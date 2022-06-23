@@ -146,7 +146,7 @@ void MapViewerParameters::print() const {
 ParameterCollection::ParameterCollection(): _parameters(this),
                                             number_of_parameters_detected(0),
                                             number_of_parameters_parsed(0) {
-  LOG_INFO(std::cerr << "ParameterCollection::ParameterCollection|constructing" << std::endl)
+  // LOG_INFO(std::cerr << "ParameterCollection::ParameterCollection|constructing" << std::endl)
 
   //ds allocate minimal set of parameters
   command_line_parameters    = new CommandLineParameters();
@@ -159,11 +159,11 @@ ParameterCollection::ParameterCollection(): _parameters(this),
   map_viewer_parameters     = new MapViewerParameters();
   top_map_viewer_parameters = new MapViewerParameters();
 
-  LOG_INFO(std::cerr << "ParameterCollection::ParameterCollection|constructed" << std::endl)
+  // LOG_INFO(std::cerr << "ParameterCollection::ParameterCollection|constructed" << std::endl)
 }
 
 ParameterCollection::~ParameterCollection() {
-  LOG_INFO(std::cerr << "ParameterCollection::~ParameterCollection|destroying" << std::endl)
+  // LOG_INFO(std::cerr << "ParameterCollection::~ParameterCollection|destroying" << std::endl)
   delete command_line_parameters;
   delete world_map_parameters;
   delete relocalizer_parameters;
@@ -176,7 +176,7 @@ ParameterCollection::~ParameterCollection() {
   delete stereo_framepoint_generator_parameters;
   delete depth_framepoint_generator_parameters;
   delete tracker_parameters;
-  LOG_INFO(std::cerr << "ParameterCollection::~ParameterCollection|destroyed" << std::endl)
+  // LOG_INFO(std::cerr << "ParameterCollection::~ParameterCollection|destroyed" << std::endl)
 }
 
 void ParameterCollection::parseFromCommandLine(const int32_t& argc_, char ** argv_) {

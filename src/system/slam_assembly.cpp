@@ -30,11 +30,11 @@ SLAMAssembly::SLAMAssembly(ParameterCollection* parameters_): _parameters(parame
   FramePoint::reset();
   LocalMap::reset();
   Landmark::reset();
-  LOG_INFO(std::cerr << "SLAMAssembly::SLAMAssembly|constructed" << std::endl)
+  // LOG_INFO(std::cerr << "SLAMAssembly::SLAMAssembly|constructed" << std::endl)
 }
 
 SLAMAssembly::~SLAMAssembly() {
-  LOG_INFO(std::cerr << "SLAMAssembly::~SLAMAssembly|destroying assembly" << std::endl)
+  // LOG_INFO(std::cerr << "SLAMAssembly::~SLAMAssembly|destroying assembly" << std::endl)
   delete _tracker;
   delete _graph_optimizer;
   delete _relocalizer;
@@ -43,7 +43,7 @@ SLAMAssembly::~SLAMAssembly() {
   delete _camera_right;
   _message_reader.close();
   _synchronizer.reset();
-  LOG_INFO(std::cerr << "SLAMAssembly::~SLAMAssembly|destroyed" << std::endl)
+  // LOG_INFO(std::cerr << "SLAMAssembly::~SLAMAssembly|destroyed" << std::endl)
 }
 
 void SLAMAssembly::_createStereoTracker(Camera* camera_left_, Camera* camera_right_){
@@ -118,12 +118,13 @@ void SLAMAssembly::loadCamerasFromMessageFile() {
   srrg_core::BaseMessage* message = 0;
   _camera_left  = nullptr;
   _camera_right = nullptr;
+
   while ((message = _message_reader.readMessage())) {
 
     //ds we currently only process image data!
     srrg_core::PinholeImageMessage* image_message = dynamic_cast<srrg_core::PinholeImageMessage*>(message);
     if (image_message) {
-
+      
       //ds fix orazio orientation TODO purify dataset calibration parameters
       if (_parameters->command_line_parameters->dataset_file_name == "orazio_2016_run.txt") {
         std::cerr << "applying orazio tilt correction" << std::endl;
@@ -313,20 +314,6 @@ void SLAMAssembly::draw() {
       _minimap_viewer->updateGL();
     }
     _ui_server->processEvents();
-
-//    //ds save images to disk
-//    if (_new_image_available) {
-//
-//      //ds save images to disk
-//      _map_viewer->setSnapshotFileName("images/map.jpg");
-//      _map_viewer->saveSnapshot();
-//      if (_minimap_viewer) {
-//        _minimap_viewer->setSnapshotFileName("images/minimap.jpg");
-//        _minimap_viewer->saveSnapshot();
-//      }
-//      _image_viewer->saveToDisk();
-//      _new_image_available = false;
-//    }
   }
 }
 
@@ -354,7 +341,13 @@ void SLAMAssembly::playbackMessageFile() {
 
   //ds start playback
   srrg_core::BaseMessage* message = 0;
+  int frame_cnt = 0;
   while ((message = _message_reader.readMessage())) {
+
+    if (frame_cnt > 4000) break;
+    else if (frame_cnt % 50 == 0) std::cout << "frame_cnt: " << frame_cnt << " / 4000" << std::endl;
+    frame_cnt++;
+
     srrg_core::BaseSensorMessage* sensor_message = dynamic_cast<srrg_core::BaseSensorMessage*>(message);
     assert(sensor_message);
     sensor_message->untaint();
@@ -383,6 +376,8 @@ void SLAMAssembly::playbackMessageFile() {
         throw std::runtime_error("SLAMAssembly::playbackMessageFile|unable to retrieve image data from srrg messages");
       }
 
+      // EASY_BLOCK("LoadImage", profiler::colors::Black);
+
       //ds buffer images
       cv::Mat image_left;
       if(image_message_left->image().type() == CV_8UC3){
@@ -396,6 +391,8 @@ void SLAMAssembly::playbackMessageFile() {
       } else {
         image_right = image_message_right->image();
       }
+
+      // EASY_END_BLOCK;
 
       //ds preprocess the images if desired
       if (_parameters->command_line_parameters->option_equalize_histogram) {
@@ -651,8 +648,12 @@ void SLAMAssembly::process(const cv::Mat& intensity_image_left_,
     _tracker->setCameraLeftInWorldGuess(camera_left_in_world_guess_);
   }
 
+  // EASY_BLOCK("F_Compute", profiler::colors::Yellow);
+
   //ds track framepoints from previous state (predict) and derive current state (update)
   _tracker->compute();
+  
+  // EASY_END_BLOCK;
 
   //ds if we generated a valid frame
   if (_world_map->currentFrame()) {
@@ -665,7 +666,13 @@ void SLAMAssembly::process(const cv::Mat& intensity_image_left_,
 
       //ds local map generation - regardless of tracker state
       if (_map_viewer) {_map_viewer->lock();}
+
+      // EASY_BLOCK("LocalMap", profiler::colors::Yellow);
+
       LocalMap* created_local_map = _world_map->createLocalMap(_parameters->command_line_parameters->option_drop_framepoints);
+
+      // EASY_END_BLOCK;
+
       if (_map_viewer) {_map_viewer->unlock();}
 
       //ds if we successfully created a local map
@@ -681,12 +688,17 @@ void SLAMAssembly::process(const cv::Mat& intensity_image_left_,
           if (closure->is_valid) {
             assert(created_local_map == closure->local_map_query);
 
+            // EASY_BLOCK("LoopClosure", profiler::colors::Green);
+
             //ds add loop closure constraint (merging corresponding landmarks)
             _world_map->addLoopClosure(created_local_map,
                                        closure->local_map_reference,
                                        closure->query_to_reference,
                                        closure->correspondences,
                                        closure->icp_inlier_ratio);
+            
+            // EASY_END_BLOCK;
+
             if (_parameters->command_line_parameters->option_use_gui) {
               for (const Closure::Correspondence* match: closure->correspondences) {
                 _world_map->landmarks().at(match->query->identifier())->setIsInLoopClosureQuery(true);
@@ -708,8 +720,12 @@ void SLAMAssembly::process(const cv::Mat& intensity_image_left_,
           //ds check if a periodic bundle adjustment is required
           if (_world_map->frames().size() % _parameters->graph_optimizer_parameters->number_of_frames_per_bundle_adjustment == 0) {
 
+            // EASY_BLOCK("Optim", profiler::colors::Pink);
+
             //ds optimize graph
             _graph_optimizer->optimizeFactorGraph(_world_map);
+
+            // EASY_END_BLOCK;
           }
         } else {
 

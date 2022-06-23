@@ -5,30 +5,32 @@ namespace proslam {
 Relocalizer::Relocalizer(RelocalizerParameters* parameters_): _parameters(parameters_) {
   _added_local_maps.clear();
   clear();
-  LOG_INFO(std::cerr << "Relocalizer::Relocalizer|constructed" << std::endl)
+  // LOG_INFO(std::cerr << "Relocalizer::Relocalizer|constructed" << std::endl)
 }
 
 void Relocalizer::configure() {
-  LOG_INFO(std::cerr << "Relocalizer::configure|configuring" << std::endl)
+  // LOG_INFO(std::cerr << "Relocalizer::configure|configuring" << std::endl)
   _added_local_maps.clear();
   clear();
 
   //ds allocate and configure aligner unit
   _aligner = XYZAlignerPtr(new XYZAligner(_parameters->aligner));
   _aligner->configure();
-  LOG_INFO(std::cerr << "Relocalizer::configure|configured" << std::endl)
+  // LOG_INFO(std::cerr << "Relocalizer::configure|configured" << std::endl)
 }
 
 Relocalizer::~Relocalizer() {
-  LOG_INFO(std::cerr << "Relocalizer::~Relocalizer|destroying" << std::endl)
+  // LOG_INFO(std::cerr << "Relocalizer::~Relocalizer|destroying" << std::endl)
   _added_local_maps.clear();
   clear();
-  LOG_INFO(std::cerr << "Relocalizer::~Relocalizer|destroyed" << std::endl)
+  // LOG_INFO(std::cerr << "Relocalizer::~Relocalizer|destroyed" << std::endl)
 }
 
 //ds retrieve loop closure candidates for the given cloud
 void Relocalizer::detectClosures(LocalMap* local_map_query_) {
   CHRONOMETER_START(overall)
+  EASY_BLOCK("PoseOptim", profiler::colors::Pink);
+
   if (!local_map_query_) {
     return;
   }
@@ -155,21 +157,28 @@ void Relocalizer::detectClosures(LocalMap* local_map_query_) {
                         << " (" << static_cast<real>(merges.size())/number_of_query_matchables << ")" << std::endl)
   }
 #endif
+  EASY_END_BLOCK;
   CHRONOMETER_STOP(overall)
 }
 
 //ds geometric verification and determination of spatial relation between a set of closures
 void Relocalizer::registerClosures() {
   CHRONOMETER_START(overall)
+  EASY_BLOCK("PoseOptim", profiler::colors::Pink);
+
   for(Closure* closure: _closures) {
     _aligner->initialize(closure);
     _aligner->converge();
   }
+
+  EASY_END_BLOCK;
   CHRONOMETER_STOP(overall)
 }
 
 void Relocalizer::prune() {
   CHRONOMETER_START(overall)
+  EASY_BLOCK("PoseOptim", profiler::colors::Pink);
+
   Closure* closure_best = nullptr;
   for(Closure* closure: _closures) {
     if (closure->is_valid) {
@@ -197,16 +206,22 @@ void Relocalizer::prune() {
   if (closure_best) {
     _closures.push_back(closure_best);
   }
+
+  EASY_END_BLOCK;
   CHRONOMETER_STOP(overall)
 }
 
 void Relocalizer::clear() {
   CHRONOMETER_START(overall)
+  EASY_BLOCK("PoseOptim", profiler::colors::Pink);
+
   for(const Closure* closure: _closures) {
     delete closure;
   }
   _closures.clear();
   _mask_id_references_for_correspondences.clear();
+
+  EASY_END_BLOCK;
   CHRONOMETER_STOP(overall)
 }
 

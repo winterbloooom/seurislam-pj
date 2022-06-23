@@ -6,11 +6,11 @@ namespace proslam {
 StereoFramePointGenerator::StereoFramePointGenerator(StereoFramePointGeneratorParameters* parameters_): BaseFramePointGenerator(parameters_),
                                                                                                         _parameters(parameters_) {
   _epipolar_search_offsets_pixel.clear();
-  LOG_INFO(std::cerr << "StereoFramePointGenerator::StereoFramePointGenerator|constructed" << std::endl)
+  // LOG_INFO(std::cerr << "StereoFramePointGenerator::StereoFramePointGenerator|constructed" << std::endl)
 }
 
 void StereoFramePointGenerator::configure(){
-  LOG_INFO(std::cerr << "StereoFramePointGenerator::configure|configuring" << std::endl)
+  // LOG_INFO(std::cerr << "StereoFramePointGenerator::configure|configuring" << std::endl)
   assert(_camera_right);
 
   //ds integrate configuration
@@ -43,14 +43,14 @@ void StereoFramePointGenerator::configure(){
   //ds info
   LOG_INFO(std::cerr << "StereoFramePointGenerator::configure|baseline (m): " << _baseline_meters << std::endl)
   LOG_INFO(std::cerr << "StereoFramePointGenerator::configure|number of epipolar lines considered for stereo matching: " << _epipolar_search_offsets_pixel.size() << std::endl)
-  LOG_INFO(std::cerr << "StereoFramePointGenerator::configure|configured" << std::endl)
+  // LOG_INFO(std::cerr << "StereoFramePointGenerator::configure|configured" << std::endl)
 }
 
 //ds cleanup of dynamic structures
 StereoFramePointGenerator::~StereoFramePointGenerator() {
-  LOG_INFO(std::cerr << "StereoFramePointGenerator::~StereoFramePointGenerator|destroying" << std::endl)
+  // LOG_INFO(std::cerr << "StereoFramePointGenerator::~StereoFramePointGenerator|destroying" << std::endl)
   _epipolar_search_offsets_pixel.clear();
-  LOG_INFO(std::cerr << "StereoFramePointGenerator::~StereoFramePointGenerator|destroyed" << std::endl)
+  // LOG_INFO(std::cerr << "StereoFramePointGenerator::~StereoFramePointGenerator|destroyed" << std::endl)
 }
 
 void StereoFramePointGenerator::initialize(Frame* frame_, const bool& extract_features_) {
@@ -98,6 +98,8 @@ void StereoFramePointGenerator::initialize(Frame* frame_, const bool& extract_fe
 
 void StereoFramePointGenerator::compute(Frame* frame_) {
   CHRONOMETER_START(point_triangulation)
+  EASY_BLOCK("StereoMatching", profiler::colors::Yellow);
+
   if (!frame_) {
     throw std::runtime_error("StereoFramePointGenerator::compute|called with empty frame");
   }
@@ -261,6 +263,8 @@ void StereoFramePointGenerator::compute(Frame* frame_) {
     //ds add all points to frame
     framepoints.insert(framepoints.end(), framepoints_new.begin(), framepoints_new.end());
   }
+
+  EASY_END_BLOCK;
   CHRONOMETER_STOP(point_triangulation)
 }
 

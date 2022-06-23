@@ -12,6 +12,9 @@
 #include "visualization/map_viewer.h"
 #include "framepoint_generation/stereo_framepoint_generator.h"
 
+#include <easy/profiler.h>
+#define USING_EASY_PROFILER
+
 namespace proslam {
 
 //ds simple assembly of the different SLAM modules provided by ProSLAM

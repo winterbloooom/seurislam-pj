@@ -1,10 +1,15 @@
 #include "system/slam_assembly.h"
+#include <easy/profiler.h>
+#define USING_EASY_PROFILER
 
 int32_t main(int32_t argc_, char** argv_) {
 
 #ifdef SRRG_MERGE_DESCRIPTORS
   std::cerr << "main|HBST descriptor merging enabled" << std::endl;
 #endif
+
+  EASY_PROFILER_ENABLE;
+  // profiler::startListen();
 
   //ds enable opencv optimizations
   cv::setUseOptimized(true);
@@ -59,7 +64,7 @@ int32_t main(int32_t argc_, char** argv_) {
 
       //ds start message playback in separate thread
       slam_thread = slam_system.playbackMessageFileInThread();
-
+         
       //ds enter GUI loop
       while (slam_system.isViewerOpen()) {
 
@@ -70,6 +75,7 @@ int32_t main(int32_t argc_, char** argv_) {
         slam_system.draw();
       }
 
+      
       //ds clean up GL
       gui_server->closeAllWindows();
       gui_server->quit();
@@ -100,8 +106,9 @@ int32_t main(int32_t argc_, char** argv_) {
     slam_system.printReport();
 
     //ds save trajectories to disk
-    slam_system.writeTrajectoryKITTI("trajectory_kitti.txt");
-    slam_system.writeTrajectoryTUM("trajectory_tum.txt");
+    slam_system.writeTrajectoryKITTI("/root/test_results/ProSLAM/trajectory_kitti.txt");
+    slam_system.writeTrajectoryTUM("/root/test_results/ProSLAM/trajectory_tum.txt");
+    profiler::dumpBlocksToFile("/root/test_results/ProSLAM/ProSLAM_profile.prof");
 
     //ds save g2o graph to disk
     if (parameters->command_line_parameters->option_save_pose_graph) {
@@ -119,6 +126,7 @@ int32_t main(int32_t argc_, char** argv_) {
     }
     std::cerr << "main|all threads successfully joined" << std::endl;
   }
+
 
   //ds clean up dynamic memory
   delete parameters;
