@@ -222,6 +222,16 @@ public:
 
   //! @brief maximum checked epipolar line offsets
   int32_t maximum_epipolar_search_offset_pixels  = 0;
+
+  bool use_opencv_match = true;
+  std::string select_descriptor_matcher = "FLANNBASED";
+
+  bool matching_disable_findhomography = false;
+  std::string findhomography_method = "RANSAC";
+
+  int32_t maximum_ransac_reproject = 1;
+  int32_t maximum_iters = 1000;
+  real maximum_confidence = 0.995;
 };
 
 //! @class framepoint generation parameters for a rgbd camera setup
@@ -313,6 +323,8 @@ public:
 
   //! @brief correspondence retrieval
   Count minimum_matches_per_correspondence = 0;
+
+  std::string aligner_type = "ICP";
 
   //! @brief parameters of aligner unit
   AlignerParameters* aligner;

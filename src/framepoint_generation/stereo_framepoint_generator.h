@@ -19,6 +19,8 @@ public:
   //! @param[in, out] frame_ frame that will be filled with framepoints
   virtual void compute(Frame* frame_) override;
 
+  void compute_CV(Frame* frame_);
+  
   //! @brief computes first tracks between previous framepoints, estimates the projection error
   //! @brief and uses the prior on the right camera for fast and reliable stereo matching
   //! @param[in, out] frame_ frame that will be filled with framepoints and tracks

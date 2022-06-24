@@ -15,7 +15,6 @@ void StereoFramePointGenerator::configure(){
 
   //ds integrate configuration
   _parameters->number_of_cameras = 2;
-  LOG_INFO(std::cerr << _parameters->number_of_cameras << std::endl)
   BaseFramePointGenerator::configure();
 
   //ds configure stereo triangulation parameters
@@ -96,176 +95,465 @@ void StereoFramePointGenerator::initialize(Frame* frame_, const bool& extract_fe
   _feature_matcher_right.setFeatures(frame_->keypointsRight(), frame_->descriptorsRight());
 }
 
-void StereoFramePointGenerator::compute(Frame* frame_) {
-  CHRONOMETER_START(point_triangulation)
-  EASY_BLOCK("StereoMatching", profiler::colors::Yellow);
-
-  if (!frame_) {
-    throw std::runtime_error("StereoFramePointGenerator::compute|called with empty frame");
-  }
-  FramePointPointerVector& framepoints(frame_->points());
-  const Count number_of_points_tracked = framepoints.size();
-
-  //ds store already present points for optional binning
-  if (_parameters->enable_keypoint_binning) {
-    for (FramePoint* point: frame_->points()) {
-      const Index row_bin = std::rint(static_cast<real>(point->row)/_parameters->bin_size_pixels);
-      const Index col_bin = std::rint(static_cast<real>(point->col)/_parameters->bin_size_pixels);
-      _bin_map_left[row_bin][col_bin] = point;
+void StereoFramePointGenerator::compute_CV(Frame* frame_) {
+    CHRONOMETER_START(point_triangulation)
+    if (!frame_) {
+        throw std::runtime_error("StereoFramePointGenerator::compute|called with empty frame");
     }
-  }
+    FramePointPointerVector &framepoints(frame_->points());
+    const Count number_of_points_tracked = framepoints.size();
 
-  //ds prepare for fast stereo matching - we temporally break the IntensityFeature.index_in_vector, which will be restored when pruning
-  _feature_matcher_left.sortFeatureVector();
-  _feature_matcher_right.sortFeatureVector();
-
-  //ds new framepoints - optionally filtered in a consecutive binning
-  FramePointPointerVector framepoints_new(_number_of_detected_keypoints);
-  Count number_of_new_points = 0;
-
-  //ds start stereo matching for all epipolar offsets
-  for (const int32_t& epipolar_offset: _epipolar_search_offsets_pixel) {
-    IntensityFeaturePointerVector& features_left(_feature_matcher_left.feature_vector);
-    IntensityFeaturePointerVector& features_right(_feature_matcher_right.feature_vector);
-
-    //ds matched features (to not consider them for the next offset search)
-    std::set<uint32_t> matched_indices_left;
-    std::set<uint32_t> matched_indices_right;
-
-    //ds running variable
-    uint32_t index_R = 0;
-
-    //ds loop over all left keypoints
-    for (uint32_t index_L = 0; index_L < features_left.size(); index_L++) {
-
-      //ds if there are no more points on the right to match against - stop
-      if (index_R == features_right.size()) {break;}
-
-      //ds the right keypoints are on an lower row - skip left
-      while (features_left[index_L]->row < features_right[index_R]->row+epipolar_offset) {
-        index_L++; if (index_L == features_left.size()) {break;}
-      }
-      if (index_L == features_left.size()) {break;}
-      IntensityFeature* feature_left = features_left[index_L];
-
-      //ds the right keypoints are on an upper row - skip right
-      while (feature_left->row > features_right[index_R]->row+epipolar_offset) {
-        index_R++; if (index_R == features_right.size()) {break;}
-      }
-      if (index_R == features_right.size()) {break;}
-
-      //ds search bookkeeping
-      uint32_t index_search_R       = index_R;
-      real descriptor_distance_best = _current_maximum_descriptor_distance_triangulation;
-      uint32_t index_best_R         = 0;
-
-      //ds scan epipolar line for current keypoint at idx_L - exhaustive
-      while (feature_left->row == features_right[index_search_R]->row+epipolar_offset) {
-
-        //ds invalid disparity stop condition
-        if (feature_left->col-features_right[index_search_R]->col < 0) {break;}
-
-        //ds compute descriptor distance for the stereo match candidates
-        const real descriptor_distance = cv::norm(feature_left->descriptor, features_right[index_search_R]->descriptor, SRRG_PROSLAM_DESCRIPTOR_NORM);
-        if(descriptor_distance < descriptor_distance_best) {
-          descriptor_distance_best = descriptor_distance;
-          index_best_R             = index_search_R;
+    //ds store already present points for optional binning
+    if (_parameters->enable_keypoint_binning) {
+        for (FramePoint *point: frame_->points()) {
+            const Index row_bin = std::rint(static_cast<real>(point->row) / _parameters->bin_size_pixels);
+            const Index col_bin = std::rint(static_cast<real>(point->col) / _parameters->bin_size_pixels);
+            _bin_map_left[row_bin][col_bin] = point;
         }
-        index_search_R++; if (index_search_R == features_right.size()) {break;}
-      }
+    }
 
-      //ds check if something was found
-      if (descriptor_distance_best < _current_maximum_descriptor_distance_triangulation) {
-        IntensityFeature* feature_right = features_right[index_best_R];
+    //ds prepare for fast stereo matching - we temporally break the IntensityFeature.index_in_vector, which will be restored when pruning
+    _feature_matcher_left.sortFeatureVector();
+    _feature_matcher_right.sortFeatureVector();
 
-        //ds skip points with insufficient stereo disparity
-        if (feature_left->col-feature_right->col < _parameters->minimum_disparity_pixels) {
-          continue;
-        }
+    //ds new framepoints - optionally filtered in a consecutive binning
+    FramePointPointerVector framepoints_new(_number_of_detected_keypoints);
+    Count number_of_new_points = 0;
 
-        //ds compute a new framepoint without track
-        FramePoint* framepoint = frame_->createFramepoint(feature_left,
-                                                          feature_right,
-                                                          descriptor_distance_best,
-                                                          getPointInLeftCamera(feature_left->keypoint.pt, feature_right->keypoint.pt));
-        framepoint->setEpipolarOffset(epipolar_offset);
+    // =============================================
+    // *****************USE OPENCV******************
+    // =============================================
+    //ds load feature matcher
+    cv::Ptr<cv::DescriptorMatcher> matcher;
+    std::vector<std::vector<cv::DMatch>> matches;
+    std::vector<std::vector<cv::DMatch>> bf_matches;
+    std::vector<cv::Point2d> left_good_points;
+    std::vector<cv::Point2d> right_good_points;
 
-        //ds store point for optional binning
-        if (_parameters->enable_keypoint_binning) {
-          const Index row_bin = std::rint(static_cast<real>(feature_left->row)/_parameters->bin_size_pixels);
-          const Index col_bin = std::rint(static_cast<real>(feature_left->col)/_parameters->bin_size_pixels);
+    if (_parameters->select_descriptor_matcher == "FLANNBASED")
+        matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
+    else if (_parameters->select_descriptor_matcher == "BRUTEFORCE")
+        matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::BRUTEFORCE);
+    else if (_parameters->select_descriptor_matcher == "BRUTEFORCE_L1")
+        matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::BRUTEFORCE_L1);
+    else if (_parameters->select_descriptor_matcher == "BRUTEFORCE_HAMMING")
+        matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::BRUTEFORCE_HAMMING);
+    else if (_parameters->select_descriptor_matcher == "BRUTEFORCE_HAMMINGLUT")
+        matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::BRUTEFORCE_HAMMINGLUT);
+    else if (_parameters->select_descriptor_matcher == "BRUTEFORCE_SL2")
+        matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::BRUTEFORCE_SL2);
+    else {
+        std::cout << "Not detected method! - FLANNBASED use!" << '\n';
+        matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
+    }
 
-          //ds if there is already a point in the bin
-          if (_bin_map_left[row_bin][col_bin]) {
-            const FramePoint* current = _bin_map_left[row_bin][col_bin];
+    cv::Mat temp_des1, temp_des2;
+    if(frame_->descriptorsLeft().type()!=CV_32F) {
+        frame_->descriptorsLeft().convertTo(temp_des1, CV_32F);
+    }
+    if(frame_->descriptorsRight().type()!=CV_32F) {
+        frame_->descriptorsRight().convertTo(temp_des2, CV_32F);
+    }
+    matcher->knnMatch(temp_des1, temp_des2, bf_matches, 2);
 
-            //ds if the point in the bin is not tracked, we prefer points with maximal disparity (= maximally accurate depth estimate)
-            if (!current->previous() &&
-                framepoint->disparityPixels() > current->disparityPixels() &&
-                framepoint->descriptorDistanceTriangulation() <= current->descriptorDistanceTriangulation()) {
-
-              //ds overwrite the entry
-              _bin_map_left[row_bin][col_bin] = framepoint;
+    if (_parameters->matching_disable_findhomography) {
+        //ds Lowe's ratio test, delete false matcher
+        const float ratio_thresh = 0.7f;
+        std::vector<cv::DMatch> good_matches;
+        for (size_t i = 0; i < matches.size(); i++) {
+            if (matches[i][0].distance < ratio_thresh * matches[i][1].distance) {
+                good_matches.push_back(matches[i][0]);
             }
-          } else {
+        }
 
-            //ds add a new entry
-            _bin_map_left[row_bin][col_bin] = framepoint;
+        for (std::vector<cv::DMatch>::const_iterator it= good_matches.begin(); it != good_matches.end(); ++it) {
+            left_good_points.push_back(frame_->keypointsLeft()[it->queryIdx].pt);
+            right_good_points.push_back(frame_->keypointsRight()[it->trainIdx].pt);
+        }
+    }
+    else {
+        std::vector<cv::DMatch> good_matches;
+        for (size_t i = 0; i < bf_matches.size(); i++) {
+            good_matches.push_back(bf_matches[i][0]);
+        }
+
+        std::vector<cv::Point2d> before_left_good_points;
+        std::vector<cv::Point2d> before_right_good_points;
+
+        for (std::vector<cv::DMatch>::const_iterator it= good_matches.begin(); it != good_matches.end(); ++it) {
+            before_left_good_points.push_back(frame_->keypointsLeft()[it->queryIdx].pt);
+            before_right_good_points.push_back(frame_->keypointsRight()[it->trainIdx].pt);
+        }
+
+        cv::Mat mask, H, mask2, F;
+
+        if (_parameters->findhomography_method == "RANSAC")
+            H = cv::findHomography(before_left_good_points, before_right_good_points, cv::RANSAC,
+                                   _parameters->maximum_ransac_reproject, mask, _parameters->maximum_iters, _parameters->maximum_confidence);
+        else if (_parameters->findhomography_method == "RHO")
+            H = cv::findHomography(before_left_good_points, before_right_good_points, cv::RHO,
+                                   _parameters->maximum_ransac_reproject, mask, _parameters->maximum_iters, _parameters->maximum_confidence);
+        else if (_parameters->findhomography_method == "LMEDS")
+            H = cv::findHomography(before_left_good_points, before_right_good_points, cv::LMEDS,
+                                   _parameters->maximum_ransac_reproject, mask, _parameters->maximum_iters, _parameters->maximum_confidence);
+        else {
+            std::cout << "Not detected find-homography method! - RANSAC use!" << '\n';
+            H = cv::findHomography(before_left_good_points, before_right_good_points, cv::RANSAC,
+                                   _parameters->maximum_ransac_reproject, mask, _parameters->maximum_iters, _parameters->maximum_confidence);
+        }
+
+        for (int i = 0; i < int(mask.size().area()); i++) {
+            if (mask.at<uchar>(i, 0) != '0') {
+                left_good_points.push_back(before_left_good_points[i]);
+                right_good_points.push_back(before_right_good_points[i]);
+            }
+        }
+    }
+    // ==========================================================
+    // ==========================================================
+
+    //ds start stereo matching for all epipolar offsets
+    for (const int32_t &epipolar_offset: _epipolar_search_offsets_pixel) {
+        IntensityFeaturePointerVector &features_left(_feature_matcher_left.feature_vector);
+        IntensityFeaturePointerVector &features_right(_feature_matcher_right.feature_vector);
+
+        //ds matched features (to not consider them for the next offset search)
+        std::set <uint32_t> matched_indices_left;
+        std::set <uint32_t> matched_indices_right;
+
+        //ds running variable
+        uint32_t index_R = 0;
+
+        //ds loop over all left keypoints
+        for (uint32_t index_L = 0; index_L < features_left.size(); index_L++) {
+
+            //ds if there are no more points on the right to match against - stop
+            if (index_R == features_right.size()) { break; }
+
+            //ds the right keypoints are on an lower row - skip left
+            while (features_left[index_L]->row < features_right[index_R]->row + epipolar_offset) {
+                index_L++;
+                if (index_L == features_left.size()) { break; }
+            }
+            if (index_L == features_left.size()) { break; }
+            IntensityFeature *feature_left = features_left[index_L];
+
+            //ds the right keypoints are on an upper row - skip right
+            while (feature_left->row > features_right[index_R]->row + epipolar_offset) {
+                index_R++;
+                if (index_R == features_right.size()) { break; }
+            }
+            if (index_R == features_right.size()) { break; }
+
+            //ds search bookkeeping
+            uint32_t index_search_R = index_R;
+            real descriptor_distance_best = _current_maximum_descriptor_distance_triangulation;
+            uint32_t index_best_R = 0;
+
+            //ds scan epipolar line for current keypoint at idx_L - exhaustive
+            while (feature_left->row == features_right[index_search_R]->row + epipolar_offset) {
+
+                //ds invalid disparity stop condition
+                if (feature_left->col - features_right[index_search_R]->col < 0) { break; }
+
+                //ds compute descriptor distance for the stereo match candidates
+                const real descriptor_distance = cv::norm(feature_left->descriptor,
+                                                          features_right[index_search_R]->descriptor,
+                                                          SRRG_PROSLAM_DESCRIPTOR_NORM);
+                if (descriptor_distance < descriptor_distance_best) {
+                    descriptor_distance_best = descriptor_distance;
+                    index_best_R = index_search_R;
+                }
+                index_search_R++;
+                if (index_search_R == features_right.size()) { break; }
+            }
+
+            //ds check if something was found
+            if (descriptor_distance_best < _current_maximum_descriptor_distance_triangulation) {
+                IntensityFeature *feature_right = features_right[index_best_R];
+
+                //ds skip points with insufficient stereo disparity
+                if (feature_left->col - feature_right->col < _parameters->minimum_disparity_pixels) {
+                    continue;
+                }
+
+                for (int idx = 0; idx < int(left_good_points.size()); idx++) {
+                    if (feature_left->keypoint.pt.x != left_good_points[idx].x || feature_left->keypoint.pt.y != left_good_points[idx].y) {
+                        if (feature_right->keypoint.pt.x != right_good_points[idx].x || feature_right->keypoint.pt.y != right_good_points[idx].y) {
+                            continue;
+                        }
+                    }
+                }
+
+                //ds compute a new framepoint without track
+                FramePoint *framepoint = frame_->createFramepoint(feature_left,
+                                                                  feature_right,
+                                                                  descriptor_distance_best,
+                                                                  getPointInLeftCamera(feature_left->keypoint.pt,
+                                                                                       feature_right->keypoint.pt));
+                framepoint->setEpipolarOffset(epipolar_offset);
+
+                //ds store point for optional binning
+                if (_parameters->enable_keypoint_binning) {
+                    const Index row_bin = std::rint(
+                            static_cast<real>(feature_left->row) / _parameters->bin_size_pixels);
+                    const Index col_bin = std::rint(
+                            static_cast<real>(feature_left->col) / _parameters->bin_size_pixels);
+
+                    //ds if there is already a point in the bin
+                    if (_bin_map_left[row_bin][col_bin]) {
+                        const FramePoint *current = _bin_map_left[row_bin][col_bin];
+
+                        //ds if the point in the bin is not tracked, we prefer points with maximal disparity (= maximally accurate depth estimate)
+                        if (!current->previous() &&
+                            framepoint->disparityPixels() > current->disparityPixels() &&
+                            framepoint->descriptorDistanceTriangulation() <=
+                            current->descriptorDistanceTriangulation()) {
+
+                            //ds overwrite the entry
+                            _bin_map_left[row_bin][col_bin] = framepoint;
+                        }
+                    } else {
+
+                        //ds add a new entry
+                        _bin_map_left[row_bin][col_bin] = framepoint;
+                    }
+                }
+
+                //ds set point to buffer
+                framepoints_new[number_of_new_points] = framepoint;
+                ++number_of_new_points;
+
+                //ds block further matching NOTE: that we have to put the indices of the sorted vector instead of using IntensityFeature.index_in_vector
+                //ds this because the IntensityFeature.index_in_vector gets broken after the sorting and we don't want to spend time on maintaining it for this task
+                matched_indices_left.insert(index_L);
+                matched_indices_right.insert(index_best_R);
+                _feature_matcher_left.feature_lattice[feature_left->row][feature_left->col] = nullptr;
+                _feature_matcher_right.feature_lattice[feature_right->row][feature_right->col] = nullptr;
+
+                //ds reduce search space (this eliminates all structurally conflicting matches)
+                index_R = index_best_R + 1;
+            }
+        }
+
+        //ds remove matched indices from candidate pools
+        _feature_matcher_left.prune(matched_indices_left);
+        _feature_matcher_right.prune(matched_indices_right);
+        LOG_DEBUG(std::cerr << "StereoFramePointGenerator::compute|epipolar offset: " << epipolar_offset
+                            << " number of unmatched features L: " << features_left.size() << " R: "
+                            << features_right.size() << std::endl)
+    }
+    framepoints_new.resize(number_of_new_points);
+    LOG_DEBUG(std::cerr << "StereoFramePointGenerator::compute|number of new stereo points: " << number_of_new_points
+                        << "/" << _number_of_detected_keypoints << std::endl)
+
+    //ds update framepoints
+    if (_parameters->enable_keypoint_binning) {
+
+        //ds reserve space for the best case (all points can be added)
+        Count number_of_points_binned = number_of_points_tracked;
+        framepoints.resize(number_of_points_tracked + number_of_new_points);
+
+        //ds accumulate new points over bin grid
+        for (Index row = 0; row < _number_of_rows_bin; ++row) {
+            for (Index col = 0; col < _number_of_cols_bin; ++col) {
+                if (_bin_map_left[row][col] && !_bin_map_left[row][col]->previous()) {
+                    framepoints[number_of_points_binned] = _bin_map_left[row][col];
+                    ++number_of_points_binned;
+                }
+                _bin_map_left[row][col] = nullptr;
+            }
+        }
+        framepoints.resize(number_of_points_binned);
+        LOG_DEBUG(std::cerr << "StereoFramePointGenerator::compute|number of new stereo points binned: "
+                            << number_of_points_binned - number_of_points_tracked << std::endl)
+    } else {
+
+        //ds add all points to frame
+        framepoints.insert(framepoints.end(), framepoints_new.begin(), framepoints_new.end());
+    }
+    CHRONOMETER_STOP(point_triangulation)
+}
+
+void StereoFramePointGenerator::compute(Frame* frame_) {
+  if (_parameters->use_opencv_match) {
+      compute_CV(frame_);
+  }
+  else {
+      CHRONOMETER_START(point_triangulation)
+      EASY_BLOCK("StereoMatching", profiler::colors::Yellow);
+
+      if (!frame_) {
+        throw std::runtime_error("StereoFramePointGenerator::compute|called with empty frame");
+      }
+      FramePointPointerVector& framepoints(frame_->points());
+      const Count number_of_points_tracked = framepoints.size();
+
+      //ds store already present points for optional binning
+      if (_parameters->enable_keypoint_binning) {
+        for (FramePoint *point: frame_->points()) {
+                const Index row_bin = std::rint(static_cast<real>(point->row) / _parameters->bin_size_pixels);
+                const Index col_bin = std::rint(static_cast<real>(point->col) / _parameters->bin_size_pixels);
+          _bin_map_left[row_bin][col_bin] = point;
+        }
+      }
+
+      //ds prepare for fast stereo matching - we temporally break the IntensityFeature.index_in_vector, which will be restored when pruning
+      _feature_matcher_left.sortFeatureVector();
+      _feature_matcher_right.sortFeatureVector();
+
+      //ds new framepoints - optionally filtered in a consecutive binning
+      FramePointPointerVector framepoints_new(_number_of_detected_keypoints);
+      Count number_of_new_points = 0;
+
+      //ds start stereo matching for all epipolar offsets
+      for (const int32_t& epipolar_offset: _epipolar_search_offsets_pixel) {
+          IntensityFeaturePointerVector& features_left(_feature_matcher_left.feature_vector);
+          IntensityFeaturePointerVector& features_right(_feature_matcher_right.feature_vector);
+
+          //ds matched features (to not consider them for the next offset search)
+          std::set<uint32_t> matched_indices_left;
+          std::set<uint32_t> matched_indices_right;
+
+          //ds running variable
+          uint32_t index_R = 0;
+
+          //ds loop over all left keypoints
+          for (uint32_t index_L = 0; index_L < features_left.size(); index_L++) {
+
+              //ds if there are no more points on the right to match against - stop
+              if (index_R == features_right.size()) {break;}
+
+              //ds the right keypoints are on an lower row - skip left
+              while (features_left[index_L]->row < features_right[index_R]->row+epipolar_offset) {
+                index_L++; if (index_L == features_left.size()) {break;}
+              }
+              if (index_L == features_left.size()) {break;}
+              IntensityFeature* feature_left = features_left[index_L];
+
+              //ds the right keypoints are on an upper row - skip right
+              while (feature_left->row > features_right[index_R]->row+epipolar_offset) {
+                  index_R++; 
+                  if (index_R == features_right.size()) {break;}
+              }
+              if (index_R == features_right.size()) {break;}
+
+              //ds search bookkeeping
+              uint32_t index_search_R       = index_R;
+              real descriptor_distance_best = _current_maximum_descriptor_distance_triangulation;
+              uint32_t index_best_R         = 0;
+
+              //ds scan epipolar line for current keypoint at idx_L - exhaustive
+              while (feature_left->row == features_right[index_search_R]->row+epipolar_offset) {
+
+                //ds invalid disparity stop condition
+                if (feature_left->col-features_right[index_search_R]->col < 0) {break;}
+
+                //ds compute descriptor distance for the stereo match candidates
+                const real descriptor_distance = cv::norm(feature_left->descriptor,
+                                                          features_right[index_search_R]->descriptor,
+                                                          SRRG_PROSLAM_DESCRIPTOR_NORM);
+                if (descriptor_distance < descriptor_distance_best) {
+                    descriptor_distance_best = descriptor_distance;
+                    index_best_R = index_search_R;
+                }
+                index_search_R++;
+                if (index_search_R == features_right.size()) { break; }
+              }
+
+              //ds check if something was found
+              if (descriptor_distance_best < _current_maximum_descriptor_distance_triangulation) {
+                IntensityFeature* feature_right = features_right[index_best_R];
+
+                //ds skip points with insufficient stereo disparity
+                if (feature_left->col-feature_right->col < _parameters->minimum_disparity_pixels) {
+                  continue;
+                }
+
+                //ds compute a new framepoint without track
+                FramePoint *framepoint = frame_->createFramepoint(feature_left,
+                                                                  feature_right,
+                                                                  descriptor_distance_best,
+                                                                  getPointInLeftCamera(feature_left->keypoint.pt, feature_right->keypoint.pt));
+                framepoint->setEpipolarOffset(epipolar_offset);
+
+                //ds store point for optional binning
+                if (_parameters->enable_keypoint_binning) {
+                  const Index row_bin = std::rint(static_cast<real>(feature_left->row)/_parameters->bin_size_pixels);
+                  const Index col_bin = std::rint(static_cast<real>(feature_left->col)/_parameters->bin_size_pixels);
+
+                  //ds if there is already a point in the bin
+                  if (_bin_map_left[row_bin][col_bin]) {
+                    const FramePoint* current = _bin_map_left[row_bin][col_bin];
+
+                    //ds if the point in the bin is not tracked, we prefer points with maximal disparity (= maximally accurate depth estimate)
+                    if (!current->previous() &&
+                        framepoint->disparityPixels() > current->disparityPixels() &&
+                        framepoint->descriptorDistanceTriangulation() <= current->descriptorDistanceTriangulation()) {
+
+                      //ds overwrite the entry
+                      _bin_map_left[row_bin][col_bin] = framepoint;
+                    }
+                  } else {
+
+                    //ds add a new entry
+                    _bin_map_left[row_bin][col_bin] = framepoint;
+                  }
+                }
+
+                //ds set point to buffer
+                framepoints_new[number_of_new_points] = framepoint;
+                ++number_of_new_points;
+
+                //ds block further matching NOTE: that we have to put the indices of the sorted vector instead of using IntensityFeature.index_in_vector
+                //ds this because the IntensityFeature.index_in_vector gets broken after the sorting and we don't want to spend time on maintaining it for this task
+                matched_indices_left.insert(index_L);
+                matched_indices_right.insert(index_best_R);
+                _feature_matcher_left.feature_lattice[feature_left->row][feature_left->col]    = nullptr;
+                _feature_matcher_right.feature_lattice[feature_right->row][feature_right->col] = nullptr;
+
+                //ds reduce search space (this eliminates all structurally conflicting matches)
+                index_R = index_best_R+1;
+              }
+          }
+
+          //ds remove matched indices from candidate pools
+          _feature_matcher_left.prune(matched_indices_left);
+          _feature_matcher_right.prune(matched_indices_right);
+          LOG_DEBUG(std::cerr << "StereoFramePointGenerator::compute|epipolar offset: " << epipolar_offset
+                              << " number of unmatched features L: " << features_left.size() << " R: " << features_right.size() << std::endl)
+      }
+      framepoints_new.resize(number_of_new_points);
+      LOG_DEBUG(std::cerr << "StereoFramePointGenerator::compute|number of new stereo points: " << number_of_new_points << "/" << _number_of_detected_keypoints << std::endl)
+
+      //ds update framepoints
+      if (_parameters->enable_keypoint_binning) {
+
+        //ds reserve space for the best case (all points can be added)
+        Count number_of_points_binned = number_of_points_tracked;
+        framepoints.resize(number_of_points_tracked+number_of_new_points);
+
+        //ds accumulate new points over bin grid
+        for (Index row = 0; row < _number_of_rows_bin; ++row) {
+          for (Index col = 0; col < _number_of_cols_bin; ++col) {
+            if (_bin_map_left[row][col] && !_bin_map_left[row][col]->previous()) {
+              framepoints[number_of_points_binned] = _bin_map_left[row][col];
+              ++number_of_points_binned;
+            }
+            _bin_map_left[row][col] = nullptr;
           }
         }
+        framepoints.resize(number_of_points_binned);
+        LOG_DEBUG(std::cerr << "StereoFramePointGenerator::compute|number of new stereo points binned: " << number_of_points_binned-number_of_points_tracked << std::endl)
+      } else {
 
-        //ds set point to buffer
-        framepoints_new[number_of_new_points] = framepoint;
-        ++number_of_new_points;
-
-        //ds block further matching NOTE: that we have to put the indices of the sorted vector instead of using IntensityFeature.index_in_vector
-        //ds this because the IntensityFeature.index_in_vector gets broken after the sorting and we don't want to spend time on maintaining it for this task
-        matched_indices_left.insert(index_L);
-        matched_indices_right.insert(index_best_R);
-        _feature_matcher_left.feature_lattice[feature_left->row][feature_left->col]    = nullptr;
-        _feature_matcher_right.feature_lattice[feature_right->row][feature_right->col] = nullptr;
-
-        //ds reduce search space (this eliminates all structurally conflicting matches)
-        index_R = index_best_R+1;
+        //ds add all points to frame
+        framepoints.insert(framepoints.end(), framepoints_new.begin(), framepoints_new.end());
       }
-    }
 
-    //ds remove matched indices from candidate pools
-    _feature_matcher_left.prune(matched_indices_left);
-    _feature_matcher_right.prune(matched_indices_right);
-    LOG_DEBUG(std::cerr << "StereoFramePointGenerator::compute|epipolar offset: " << epipolar_offset
-                        << " number of unmatched features L: " << features_left.size() << " R: " << features_right.size() << std::endl)
+    EASY_END_BLOCK;
+    CHRONOMETER_STOP(point_triangulation)
   }
-  framepoints_new.resize(number_of_new_points);
-  LOG_DEBUG(std::cerr << "StereoFramePointGenerator::compute|number of new stereo points: " << number_of_new_points << "/" << _number_of_detected_keypoints << std::endl)
-
-  //ds update framepoints
-  if (_parameters->enable_keypoint_binning) {
-
-    //ds reserve space for the best case (all points can be added)
-    Count number_of_points_binned = number_of_points_tracked;
-    framepoints.resize(number_of_points_tracked+number_of_new_points);
-
-    //ds accumulate new points over bin grid
-    for (Index row = 0; row < _number_of_rows_bin; ++row) {
-      for (Index col = 0; col < _number_of_cols_bin; ++col) {
-        if (_bin_map_left[row][col] && !_bin_map_left[row][col]->previous()) {
-          framepoints[number_of_points_binned] = _bin_map_left[row][col];
-          ++number_of_points_binned;
-        }
-        _bin_map_left[row][col] = nullptr;
-      }
-    }
-    framepoints.resize(number_of_points_binned);
-    LOG_DEBUG(std::cerr << "StereoFramePointGenerator::compute|number of new stereo points binned: " << number_of_points_binned-number_of_points_tracked << std::endl)
-  } else {
-
-    //ds add all points to frame
-    framepoints.insert(framepoints.end(), framepoints_new.begin(), framepoints_new.end());
-  }
-
-  EASY_END_BLOCK;
-  CHRONOMETER_STOP(point_triangulation)
 }
 
 void StereoFramePointGenerator::track(Frame* frame_,
@@ -435,9 +723,9 @@ void StereoFramePointGenerator::track(Frame* frame_,
   //ds remove matched indices from candidate pools
   _feature_matcher_left.prune(matched_indices_left);
   _feature_matcher_right.prune(matched_indices_right);
-  LOG_DEBUG(std::cerr << "StereoFramePointGenerator::track|tracked and triangulated points: " << number_of_tracked_points
+  LOG_DEBUG(std::cout << "StereoFramePointGenerator::track|tracked and triangulated points: " << number_of_tracked_points
                       << "/" << framepoints_previous.size() << " (landmarks: " << _number_of_tracked_landmarks << ")" << std::endl)
-  LOG_DEBUG(std::cerr << "StereoFramePointGenerator::track|lost points: " << number_of_points_lost
+  LOG_DEBUG(std::cout << "StereoFramePointGenerator::track|lost points: " << number_of_points_lost
                       << "/" << framepoints_previous.size() << std::endl)
 }
 
@@ -589,7 +877,7 @@ void StereoFramePointGenerator::recoverPoints(Frame* current_frame_, const Frame
     ++index_lost_point_recovered;
   }
   current_frame_->points().resize(index_lost_point_recovered);
-  LOG_DEBUG(std::cerr << "StereoFramePointGenerator::recoverPoints|recovered points: "
+  LOG_DEBUG(std::cout << "StereoFramePointGenerator::recoverPoints|recovered points: "
                       << current_frame_->points().size()-number_of_tracked_points << "/" << lost_points_.size() << std::endl)
 }
 

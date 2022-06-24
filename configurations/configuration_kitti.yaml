@@ -86,6 +86,21 @@ stereo_framepoint_generation:
   minimum_disparity_pixels:                1
   maximum_epipolar_search_offset_pixels:   0
 
+  #use-opencv match
+  #DescriptorMatcher list: FLANNBASED(default), BRUTEFORCE, BRUTEFORCE_L1,  BRUTEFORCE_HAMMING,  	BRUTEFORCE_HAMMINGLUT,  BRUTEFORCE_SL2
+  use_opencv_match: true
+  select_descriptor_matcher: FLANNBASED
+
+  #use cv-findhomography list (RANSAC[default], RHO, LMEDS)
+  matching_disable_findhomography: false
+  findhomography_method: LMEDS
+  #Only use RANSAC, RHO ONLY
+  #How many permit ransac reprojection
+  maximum_ransac_reproject: 1
+  #How many iter - ransac
+  maximum_iters: 2000
+  #Accuracy
+  maximum_confidence: 0.995
 tracking:
 
   #ds this criteria is used for the decision of whether creating a landmark or not from a track of framepoints
@@ -111,7 +126,7 @@ tracking:
   #pose optimization: aligner unit configuration
   aligner->error_delta_for_convergence:  1e-3
   aligner->maximum_error_kernel:         4
-  aligner->damping:                      5
+  aligner->damping:                      6
   aligner->maximum_number_of_iterations: 1000
   aligner->minimum_number_of_inliers:    100
   aligner->minimum_inlier_ratio:         0
@@ -135,6 +150,9 @@ relocalization:
   minimum_matches_per_correspondence: 0
   
   #icp: aligner unit configuration
+  #ds aligner type (ICP, FAST-ICP)
+  aligner_type : ICP
+
   aligner->error_delta_for_convergence:  1e-5
   aligner->maximum_error_kernel:         1.0
   aligner->damping:                      0.0
@@ -147,10 +165,10 @@ graph_optimization:
   #enable full bundle adjustment (default: only pose graph optimization upon loop closing)
   enable_full_bundle_adjustment: false
 
-  #g2o factor graph optimization algorithm: GAUSS_NEWTON, LEVENBERG 
+  #g2o factor graph optimization algorithm: GAUSS_NEWTON, LEVENBERG, DOGLEG 
   optimization_algorithm: GAUSS_NEWTON
 
-  #g2o linear solver type to perform optimization algorithm: CHOLMOD, CSPARSE
+  #g2o linear solver type to perform optimization algorithm: CHOLMOD, CSPARSE, DENSE
   linear_solver_type: CHOLMOD
 
   #g2o identifier space between frames and landmark vertices
@@ -169,7 +187,7 @@ graph_optimization:
   free_translation_for_poses: true
   
   #translational frame weight reduction in pose graph
-  base_information_frame_factor_for_translation: 1e-5
+  base_information_frame_factor_for_translation: 1e-1
 
   #enable robust kernel for loop closure measurements
   enable_robust_kernel_for_poses: true

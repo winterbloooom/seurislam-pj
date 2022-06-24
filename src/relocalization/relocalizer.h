@@ -1,5 +1,7 @@
 #pragma once
 #include "aligners/xyz_aligner.h"
+#include "aligners/fast_aligner.h"
+#include "aligners/base_local_map_aligner.h"
 #include "closure.h"
 
 #include <easy/profiler.h>
@@ -32,7 +34,7 @@ public:
 public:
 
   inline const ClosurePointerVector& closures() const {return _closures;}
-  XYZAlignerPtr aligner() {return _aligner;}
+  AlignerPtr aligner() {return _aligner;}
 
 //ds helpers
 protected:
@@ -46,7 +48,7 @@ protected:
   ClosurePointerVector _closures;
 
   //ds local map to local map alignment
-  XYZAlignerPtr _aligner = nullptr;
+  AlignerPtr _aligner = nullptr;
 
   //ds database of visited places (= local maps), storing a descriptor vector for each place
   HBSTTree _place_database;

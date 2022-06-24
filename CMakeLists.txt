@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.10.0)
 project(srrg_proslam)
 set(CMAKE_CXX_STANDARD 14)
 
+include_directories(${CMAKE_SOURCE_DIR}/src/anderson_acc/)
+
 find_package(srrg_cmake_modules REQUIRED)
 set(CMAKE_MODULE_PATH ${srrg_cmake_modules_INCLUDE_DIRS})
 
