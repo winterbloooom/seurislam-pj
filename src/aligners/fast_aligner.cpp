@@ -154,13 +154,13 @@ namespace proslam {
         
         // Rotation and translation update
         T = point_to_point(X, Y, W);
-        _current_to_reference = T;
 
         //Anderson Acc
         SVD_T = T;
         AffineMatrixN Trans = (Eigen::Map<const AffineMatrixN>(accelerator_.compute(LogMatrix(T.matrix()).data()).data(), N+1, N+1)).exp();
         T.linear() = Trans.block(0,0,N,N);
         T.translation() = Trans.block(0,N,N,1);
+        _current_to_reference = T;
 
         for (Index i = 0; i < _number_of_measurements; i++) {
                 Vector3 cur_p = SVD_T * X.col(i);
