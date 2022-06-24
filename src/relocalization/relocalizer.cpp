@@ -18,11 +18,11 @@ void Relocalizer::configure() {
     _aligner = XYZAlignerPtr(new XYZAligner(_parameters->aligner));
   else if (_parameters->aligner_type == "FAST-ICP")
     _aligner = FastAlignerPtr(new FastAligner(_parameters->aligner));
-  else:
-    _parameters->aligner_type = "ICP"
+  else{
+    _parameters->aligner_type = "ICP";
     LOG_INFO(std::cerr << "Relocalizer::aligner type | invalid aligner_type, force to use ICP" << std::endl)
     _aligner = XYZAlignerPtr(new XYZAligner(_parameters->aligner));
-     
+  }   
   LOG_INFO(std::cerr << "Relocalizer::aligner type | " << _parameters->aligner_type << std::endl)
   _aligner->configure();
   // LOG_INFO(std::cerr << "Relocalizer::configure|configured" << std::endl)
