@@ -20,7 +20,6 @@ jobs:
           echo 717lumos | sudo -S echo ""         
           cd dockerfiles
           sudo docker build --force-rm --no-cache -t "${REPO}:${HASH}" --build-arg BRANCH=${{ github.head_ref }} . -f unittest.dockerfile
-          sudo docker rmi -f $(sudo docker images -f "dangling=true" -q)
           echo "=== finished ==="
 
       - name: If Fail - Clean up Docker image if build fails
