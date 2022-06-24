@@ -87,8 +87,8 @@ stereo_framepoint_generation:
   maximum_epipolar_search_offset_pixels:   0
 
   #use-opencv match
-  #DescriptorMatcher list: FLANNBASED(default), BRUTEFORCE, BRUTEFORCE_L1,  BRUTEFORCE_HAMMING,  	BRUTEFORCE_HAMMINGLUT,  BRUTEFORCE_SL2
   use_opencv_match: true
+  #DescriptorMatcher list: FLANNBASED(default), BRUTEFORCE, BRUTEFORCE_L1,  BRUTEFORCE_HAMMING, BRUTEFORCE_HAMMINGLUT,  BRUTEFORCE_SL2
   select_descriptor_matcher: FLANNBASED
 
   #use cv-findhomography list (RANSAC[default], RHO, LMEDS)
@@ -101,6 +101,7 @@ stereo_framepoint_generation:
   maximum_iters: 2000
   #Accuracy
   maximum_confidence: 0.995
+  
 tracking:
 
   #ds this criteria is used for the decision of whether creating a landmark or not from a track of framepoints
