@@ -14,7 +14,7 @@ void Relocalizer::configure() {
   clear();
 
   //ds allocate and configure aligner unit
-  LOG_INFO(std::cerr << "Relocalizer::aligner type | " _parameters->aligner_type << std::endl)
+  LOG_INFO(std::cerr << "Relocalizer::aligner type | " << _parameters->aligner_type << std::endl)
   if (_parameters->aligner_type == "ICP")
     _aligner = XYZAlignerPtr(new XYZAligner(_parameters->aligner));
   else if (_parameters->aligner_type == "FAST-ICP")
