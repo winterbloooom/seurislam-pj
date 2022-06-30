@@ -33,6 +33,14 @@ SLAMAssembly::SLAMAssembly(ParameterCollection* parameters_): _parameters(parame
   // LOG_INFO(std::cerr << "SLAMAssembly::SLAMAssembly|constructed" << std::endl)
 }
 
+SLAMAssembly::SLAMAssembly(){
+  //ds reset all static object counters
+  Frame::reset();
+  FramePoint::reset();
+  LocalMap::reset();
+  Landmark::reset();
+}
+
 SLAMAssembly::~SLAMAssembly() {
   // LOG_INFO(std::cerr << "SLAMAssembly::~SLAMAssembly|destroying assembly" << std::endl)
   delete _tracker;
@@ -44,6 +52,34 @@ SLAMAssembly::~SLAMAssembly() {
   _message_reader.close();
   _synchronizer.reset();
   // LOG_INFO(std::cerr << "SLAMAssembly::~SLAMAssembly|destroyed" << std::endl)
+}
+
+void SLAMAssembly::setSLAMAssembly(ParameterCollection* parameters_) {
+
+  _parameters = parameters_;
+  _world_map = new WorldMap(_parameters->world_map_parameters);
+  _graph_optimizer = new GraphOptimizer(_parameters->graph_optimizer_parameters);
+  _relocalizer = new Relocalizer(_parameters->relocalizer_parameters);
+  _tracker = new PoseTracker3D(_parameters->tracker_parameters);
+  _camera_left = 0;
+  _camera_right = 0;
+  _ui_server = 0;
+  _image_viewer = 0;
+  _map_viewer = 0;
+  _minimap_viewer = 0;
+//                                                              _new_image_available(false),
+  _is_termination_requested = false;
+  _is_viewer_open = false;
+
+  _synchronizer.reset();
+  _processing_times_seconds.clear();
+  _tracker->setWorldMap(_world_map);
+
+  //ds reset all static object counters
+  Frame::reset();
+  FramePoint::reset();
+  LocalMap::reset();
+  Landmark::reset();
 }
 
 void SLAMAssembly::_createStereoTracker(Camera* camera_left_, Camera* camera_right_){
@@ -182,10 +218,10 @@ void SLAMAssembly::loadCamerasFromMessageFile() {
 
     //ds set left
     _camera_left->setProjectionMatrix(projection_matrix);
-    LOG_INFO(std::cerr << "projection matrix LEFT: " << std::endl;)
-    LOG_INFO(std::printf("%11.6f %11.6f %11.6f %11.6f\n", projection_matrix(0,0), projection_matrix(0,1), projection_matrix(0,2), projection_matrix(0,3)))
-    LOG_INFO(std::printf("%11.6f %11.6f %11.6f %11.6f\n", projection_matrix(1,0), projection_matrix(1,1), projection_matrix(1,2), projection_matrix(1,3)))
-    LOG_INFO(std::printf("%11.6f %11.6f %11.6f %11.6f\n", projection_matrix(2,0), projection_matrix(2,1), projection_matrix(2,2), projection_matrix(2,3)))
+    // LOG_INFO(std::cerr << "projection matrix LEFT: " << std::endl;)
+    // LOG_INFO(std::printf("%11.6f %11.6f %11.6f %11.6f\n", projection_matrix(0,0), projection_matrix(0,1), projection_matrix(0,2), projection_matrix(0,3)))
+    // LOG_INFO(std::printf("%11.6f %11.6f %11.6f %11.6f\n", projection_matrix(1,0), projection_matrix(1,1), projection_matrix(1,2), projection_matrix(1,3)))
+    // LOG_INFO(std::printf("%11.6f %11.6f %11.6f %11.6f\n", projection_matrix(2,0), projection_matrix(2,1), projection_matrix(2,2), projection_matrix(2,3)))
 
     //ds sanity check
     if ((_camera_left->cameraMatrix()-_camera_right->cameraMatrix()).squaredNorm() != 0) {
@@ -197,10 +233,10 @@ void SLAMAssembly::loadCamerasFromMessageFile() {
     projection_matrix.block<3,1>(0,3) = _camera_left->cameraMatrix()*_camera_right->robotToCamera().translation();
     _camera_right->setProjectionMatrix(projection_matrix);
     _camera_right->setBaselineHomogeneous(projection_matrix.col(3));
-    LOG_INFO(std::cerr << "projection matrix RIGHT: " << std::endl;)
-    LOG_INFO(std::printf("%11.6f %11.6f %11.6f %11.6f\n", projection_matrix(0,0), projection_matrix(0,1), projection_matrix(0,2), projection_matrix(0,3) ))
-    LOG_INFO(std::printf("%11.6f %11.6f %11.6f %11.6f\n", projection_matrix(1,0), projection_matrix(1,1), projection_matrix(1,2), projection_matrix(1,3)))
-    LOG_INFO(std::printf("%11.6f %11.6f %11.6f %11.6f\n", projection_matrix(2,0), projection_matrix(2,1), projection_matrix(2,2), projection_matrix(2,3)))
+    // LOG_INFO(std::cerr << "projection matrix RIGHT: " << std::endl;)
+    // LOG_INFO(std::printf("%11.6f %11.6f %11.6f %11.6f\n", projection_matrix(0,0), projection_matrix(0,1), projection_matrix(0,2), projection_matrix(0,3) ))
+    // LOG_INFO(std::printf("%11.6f %11.6f %11.6f %11.6f\n", projection_matrix(1,0), projection_matrix(1,1), projection_matrix(1,2), projection_matrix(1,3)))
+    // LOG_INFO(std::printf("%11.6f %11.6f %11.6f %11.6f\n", projection_matrix(2,0), projection_matrix(2,1), projection_matrix(2,2), projection_matrix(2,3)))
   }
 }
 
@@ -225,11 +261,11 @@ void SLAMAssembly::loadCameras() {
   //ds set system handles
   _tracker->setCameraLeft(_camera_left);
   _tracker->setCameraSecondary(_camera_right);
-  LOG_INFO(std::cerr << "SLAMAssembly::loadCameras|loaded cameras: " << 2 << std::endl)
-  LOG_INFO(std::cerr << "SLAMAssembly::loadCameras|LEFT resolution: " << _camera_left->numberOfImageCols() << " x " << _camera_left->numberOfImageRows()
-            << ", aspect ratio: " << static_cast<real>(_camera_left->numberOfImageCols())/_camera_left->numberOfImageRows() << std::endl)
-  LOG_INFO(std::cerr << "SLAMAssembly::loadCameras|RIGHT resolution: " << _camera_right->numberOfImageCols() << " x " << _camera_right->numberOfImageRows()
-            << ", aspect ratio: " << static_cast<real>(_camera_right->numberOfImageCols())/_camera_right->numberOfImageRows() << std::endl)
+  // LOG_INFO(std::cerr << "SLAMAssembly::loadCameras|loaded cameras: " << 2 << std::endl)
+  // LOG_INFO(std::cerr << "SLAMAssembly::loadCameras|LEFT resolution: " << _camera_left->numberOfImageCols() << " x " << _camera_left->numberOfImageRows()
+  //           << ", aspect ratio: " << static_cast<real>(_camera_left->numberOfImageCols())/_camera_left->numberOfImageRows() << std::endl)
+  // LOG_INFO(std::cerr << "SLAMAssembly::loadCameras|RIGHT resolution: " << _camera_right->numberOfImageCols() << " x " << _camera_right->numberOfImageRows()
+  //           << ", aspect ratio: " << static_cast<real>(_camera_right->numberOfImageCols())/_camera_right->numberOfImageRows() << std::endl)
 
   //ds configure remaining components
   _graph_optimizer->configure();
@@ -480,7 +516,7 @@ void SLAMAssembly::playbackMessageFile() {
     }
   }
   _message_reader.close();
-  LOG_INFO(std::cerr << "SLAMAssembly::playbackMessageFile|dataset completed" << std::endl)
+  // LOG_INFO(std::cerr << "SLAMAssembly::playbackMessageFile|dataset completed" << std::endl)
 }
 
 void SLAMAssembly::playbackMessageFileOnce() {
@@ -630,7 +666,7 @@ void SLAMAssembly::playbackMessageFileOnce() {
   }
 
   _message_reader.close();
-  LOG_INFO(std::cerr << "SLAMAssembly::playbackMessageFile|dataset completed" << std::endl)
+  // LOG_INFO(std::cerr << "SLAMAssembly::playbackMessageFile|dataset completed" << std::endl)
 }
 
 void SLAMAssembly::process(const cv::Mat& intensity_image_left_,

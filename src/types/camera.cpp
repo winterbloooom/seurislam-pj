@@ -22,8 +22,8 @@ Camera::Camera(srrg_core::PinholeImageMessage* message_): _identifier(_instances
   ++_instances;
   setCameraMatrix(message_->cameraMatrix().cast<real>());
   setCameraToRobot(message_->offset().cast<real>());
-  LOG_INFO(std::cerr << "Camera::Camera|constructed from message: " << message_->className()
-                     << " with topic: " << message_->topic() << std::endl)
+  // LOG_INFO(std::cerr << "Camera::Camera|constructed from message: " << message_->className()
+  //                    << " with topic: " << message_->topic() << std::endl)
 }
 
 const bool Camera::isInFieldOfView(const ImageCoordinates& image_coordinates_) const {

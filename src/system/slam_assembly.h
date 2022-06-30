@@ -26,11 +26,14 @@ public: EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   //ds default constructor - already allocating required default objects
   SLAMAssembly(ParameterCollection* parameters_);
 
+  SLAMAssembly();
+
   //ds default destructor
   ~SLAMAssembly();
 
 //ds functionality
 public:
+  void setSLAMAssembly(ParameterCollection* parameters_);
 
   //ds attempts to load the camera configuration based on the current input setting
   void loadCamerasFromMessageFile();

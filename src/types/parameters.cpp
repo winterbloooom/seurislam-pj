@@ -433,8 +433,8 @@ void ParameterCollection::parseFromFile(const std::string& filename_) {
     PARSE_PARAMETER(configuration, visualization, image_viewer_parameters, display_secondary_image, bool)
 
     //ds done
-    LOG_INFO(std::cerr << "ParameterCollection::parseFromFile|successfully loaded configuration from file: " << filename_ << std::endl)
-    LOG_INFO(std::cerr << "ParameterCollection::parseFromFile|number of imported parameters: " << number_of_parameters_parsed << "/" << number_of_parameters_detected << std::endl)
+    // LOG_INFO(std::cerr << "ParameterCollection::parseFromFile|successfully loaded configuration from file: " << filename_ << std::endl)
+    // LOG_INFO(std::cerr << "ParameterCollection::parseFromFile|number of imported parameters: " << number_of_parameters_parsed << "/" << number_of_parameters_detected << std::endl)
   } catch (const YAML::BadFile& exception_) {
     LOG_ERROR(std::cerr << "ParameterCollection::parseFromFile|unable to parse configuration file: " << filename_ << " - exception: '" << exception_.what() << "'" << std::endl)
   }

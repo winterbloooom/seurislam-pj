@@ -16,7 +16,7 @@ void  BaseFramePointGenerator::configure(){
   _focal_length_pixels             = _camera_left->cameraMatrix()(0,0);
   _principal_point_offset_u_pixels = _camera_left->cameraMatrix()(0,2);
   _principal_point_offset_v_pixels = _camera_left->cameraMatrix()(1,2);
-  LOG_INFO(std::cerr << "BaseFramePointGenerator::configure|focal length (pixels): " << _focal_length_pixels << std::endl)
+  // LOG_INFO(std::cerr << "BaseFramePointGenerator::configure|focal length (pixels): " << _focal_length_pixels << std::endl)
 
   //ds initialize feature matcher
   _feature_matcher_left.configure(_number_of_rows_image, _number_of_cols_image);
