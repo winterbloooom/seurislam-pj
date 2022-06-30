@@ -18,6 +18,6 @@ RUN echo "== Start Debug build == " && \
     catkin build --make-args tests -- srrg_proslam
 
 RUN echo "== Start Test == " && \
-    cd ~/catkin_ws/src && \
-    catkin build --make-args tests -- srrg_proslam
-    runtest
+    cd ~/dataset/KITTI_Pro && \
+    ~/catkin_ws/devel/lib/srrg_proslam/test_app
+    
