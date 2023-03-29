@@ -111,10 +111,10 @@
 4.  설정해둔 alias들
     | alias | command | description|
     |---|---|---|
-    | test_build | cd ~/catkin_ws/src && catkin build --make-args tests -- srrg_proslam | 프로슬램 + 테스트 빌드 |
-    | src_build | cd ~/catkin_ws/src && catkin build srrg_proslam | 프로슬램 빌드 |
-    | src | cd ~/catkin_ws/src/srrg_proslam | 프로슬램 폴더로 이동 |
-    | runtest | cd ~/catkin_ws/devel/lib/srrg_proslam && ./test_app | 유닛테스트 작동 |
-    | rungui | cd ~/dataset/KITTI_Pro && ~/catkin_ws/devel/lib/srrg_proslam/app -c ~/catkin_ws/src/srrg_proslam/configurations/configuration_kitti.yaml -use-gui | 프로슬램 구동 |
-    | easy_profiler | ~/catkin_ws/src/easy_profiler/build/bin/profiler_gui | profiler 작동 |
-    | runorb | cd ~/catkin_ws/src/ORB_SLAM2 && ./Examples/Stereo/stereo_kitti Vocabulary/ORBvoc.txt Examples/Stereo/KITTI00-02.yaml ~/dataset/KITTI_ORB | ORB 구동 |
+    | test_build | `cd ~/catkin_ws/src && catkin build --make-args tests -- srrg_proslam` | 프로슬램 + 테스트 빌드 |
+    | src_build | `cd ~/catkin_ws/src && catkin build srrg_proslam` | 프로슬램 빌드 |
+    | src | `cd ~/catkin_ws/src/srrg_proslam` | 프로슬램 폴더로 이동 |
+    | runtest | `cd ~/catkin_ws/devel/lib/srrg_proslam && ./test_app` | 유닛테스트 작동 |
+    | rungui | `cd ~/dataset/KITTI_Pro && ~/catkin_ws/devel/lib/srrg_proslam/app -c ~/catkin_ws/src/srrg_proslam/configurations/configuration_kitti.yaml -use-gui` | 프로슬램 구동 |
+    | easy_profiler | `~/catkin_ws/src/easy_profiler/build/bin/profiler_gui` | profiler 작동 |
+    | runorb | `cd ~/catkin_ws/src/ORB_SLAM2 && ./Examples/Stereo/stereo_kitti Vocabulary/ORBvoc.txt Examples/Stereo/KITTI00-02.yaml ~/dataset/KITTI_ORB` | ORB 구동 |
